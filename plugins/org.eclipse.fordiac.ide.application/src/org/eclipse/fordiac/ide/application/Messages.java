@@ -23,6 +23,16 @@ import org.eclipse.osgi.util.NLS;
 public final class Messages extends NLS {
 	private static final String BUNDLE_NAME = "org.eclipse.fordiac.ide.application.messages"; //$NON-NLS-1$
 
+	public static String AbstractCommandMarkerResolution_CannotCreateCommand;
+
+	public static String AbstractCommandMarkerResolution_CannotExecuteCommand;
+
+	public static String AbstractCommandMarkerResolution_CommitTask;
+
+	public static String AbstractCommandMarkerResolution_NoSuchElement;
+
+	public static String AbstractCommandMarkerResolution_PerformTask;
+
 	public static String AddFBBookMark_AddBookmark;
 
 	public static String AddFBBookMark_AddBookMarkTitle;
@@ -59,6 +69,8 @@ public final class Messages extends NLS {
 	public static String CreateSubAppCommand_LABELCreateSubAppCommand;
 
 	public static String CutEditPartsAction_Text;
+
+	public static String EnterPackageName_Text;
 
 	public static String ErrorMarkerFBNEditPart_ErrorMarker;
 
@@ -221,6 +233,48 @@ public final class Messages extends NLS {
 	public static String ToggleConnections_Target_Show;
 
 	public static String VarConfigurationSection_VarConfigs;
+
+	public static String InfoPropertySection_SystemInfo;
+
+	public static String InfoPropertySection_Number_Of_Connections_Label;
+
+	public static String InfoPropertySection_Number_Of_Used_Types_Label;
+
+	public static String InfoPropertySection_Number_Of_Untyped_SubApps_Label;
+
+	public static String InfoPropertySection_Number_Of_All_Instances_Label;
+
+	public static String InfoPropertySection_CheckBox_Label;
+
+	public static String InfoPropertySection_All_Types_And_Counts_Label;
+
+	public static String InfoPropertySection_Combo_Text_SortBy;
+
+	public static String InfoPropertySection_Combo_Text_Name;
+
+	public static String InfoPropertySection_Combo_Text_CountASC;
+
+	public static String InfoPropertySection_Combo_Text_CountDESC;
+
+	public static String QuickFixDialog_Title;
+
+	public static String QuickFixDialog_NoResolutionsFound;
+
+	public static String QuickFixDialog_NoResolutionsFoundForMultiSelection;
+
+	public static String QuickFixDialog_Message;
+
+	public static String QuickFixDialog_SelectAll;
+
+	public static String QuickFixDialog_DeselectAll;
+
+	public static String QuickFixDialog_Resolutions_List_Title;
+
+	public static String QuickFixDialog_Problems_List_Title;
+
+	public static String QuickFixDialog_Problems_List_Location;
+
+	public static String QuickFixDialog_Problems_List_Resource;
 
 	static {
 		// initialize resource bundle

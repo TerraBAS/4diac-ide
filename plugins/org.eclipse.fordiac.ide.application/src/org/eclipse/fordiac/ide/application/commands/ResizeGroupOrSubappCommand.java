@@ -228,8 +228,7 @@ public class ResizeGroupOrSubappCommand extends Command implements ConnectionLay
 		Rectangle fbBounds = null;
 
 		for (final FBNetworkElement fbe : children) {
-			final Object object = editPartRegistry.get(fbe);
-			if (object instanceof final GraphicalEditPart graphicalEP) {
+			if (editPartRegistry.get(fbe) instanceof final GraphicalEditPart graphicalEP) {
 				final IFigure fbFigure = graphicalEP.getFigure();
 				if (fbFigure != null) {
 					if (fbBounds == null) {

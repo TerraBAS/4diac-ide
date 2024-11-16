@@ -16,7 +16,6 @@ package org.eclipse.fordiac.ide.fbtypeeditor.editors;
 
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.fordiac.ide.model.libraryElement.FBType;
 import org.eclipse.gef.commands.CommandStack;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.swt.widgets.Composite;
@@ -120,7 +119,11 @@ public abstract class FBTypeXtextEditor extends XtextEditor implements IFBTEdito
 
 	@Override
 	public boolean outlineSelectionChanged(final Object selectedElement) {
-		return selectAndReveal(selectedElement, false);
+		// do not react to selection changes from the FB type editor, until we can
+		// determine the text position for the selected element without:
+		// - blocking the UI thread waiting for a lock on the Xtext document,
+		// - interrupting the Xtext validation job when executed with priority.
+		return false;
 	}
 
 	@Override
@@ -144,12 +147,12 @@ public abstract class FBTypeXtextEditor extends XtextEditor implements IFBTEdito
 	}
 
 	@Override
-	public void reloadType(final FBType type) {
+	public void reloadType() {
 		doRevertToSaved();
 	}
 
 	@Override
-	public Object getSelectableEditPart() {
+	public Object getSelectableObject() {
 		return null;
 	}
 

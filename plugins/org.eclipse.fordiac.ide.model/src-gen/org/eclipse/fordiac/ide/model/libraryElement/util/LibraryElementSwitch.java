@@ -848,6 +848,19 @@ public class LibraryElementSwitch<T> extends Switch<T> {
 				if (result == null) result = defaultCase(theEObject);
 				return result;
 			}
+			case LibraryElementPackage.SIMPLE_EC_ACTION: {
+				SimpleECAction simpleECAction = (SimpleECAction)theEObject;
+				T result = caseSimpleECAction(simpleECAction);
+				if (result == null) result = defaultCase(theEObject);
+				return result;
+			}
+			case LibraryElementPackage.SIMPLE_EC_STATE: {
+				SimpleECState simpleECState = (SimpleECState)theEObject;
+				T result = caseSimpleECState(simpleECState);
+				if (result == null) result = caseINamedElement(simpleECState);
+				if (result == null) result = defaultCase(theEObject);
+				return result;
+			}
 			case LibraryElementPackage.SIMPLE_FB_TYPE: {
 				SimpleFBType simpleFBType = (SimpleFBType)theEObject;
 				T result = caseSimpleFBType(simpleFBType);
@@ -2302,6 +2315,36 @@ public class LibraryElementSwitch<T> extends Switch<T> {
 	 * @generated
 	 */
 	public T caseServiceInterfaceFBType(ServiceInterfaceFBType object) {
+		return null;
+	}
+
+	/**
+	 * Returns the result of interpreting the object as an instance of '<em>Simple EC Action</em>'.
+	 * <!-- begin-user-doc -->
+	 * This implementation returns null;
+	 * returning a non-null result will terminate the switch.
+	 * <!-- end-user-doc -->
+	 * @param object the target of the switch.
+	 * @return the result of interpreting the object as an instance of '<em>Simple EC Action</em>'.
+	 * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+	 * @generated
+	 */
+	public T caseSimpleECAction(SimpleECAction object) {
+		return null;
+	}
+
+	/**
+	 * Returns the result of interpreting the object as an instance of '<em>Simple EC State</em>'.
+	 * <!-- begin-user-doc -->
+	 * This implementation returns null;
+	 * returning a non-null result will terminate the switch.
+	 * <!-- end-user-doc -->
+	 * @param object the target of the switch.
+	 * @return the result of interpreting the object as an instance of '<em>Simple EC State</em>'.
+	 * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+	 * @generated
+	 */
+	public T caseSimpleECState(SimpleECState object) {
 		return null;
 	}
 

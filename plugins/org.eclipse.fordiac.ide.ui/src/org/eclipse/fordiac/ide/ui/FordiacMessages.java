@@ -22,6 +22,7 @@ package org.eclipse.fordiac.ide.ui;
 import org.eclipse.osgi.util.NLS;
 
 /** The Class Messages. */
+@SuppressWarnings("squid:S3008") // tell sonar the java naming convention does not make sense for this class
 public final class FordiacMessages extends NLS {
 	private static final String BUNDLE_NAME = "org.eclipse.fordiac.ide.ui.messages"; //$NON-NLS-1$
 
@@ -94,6 +95,8 @@ public final class FordiacMessages extends NLS {
 	public static String Version; // NOSONAR
 	public static String VersionInfo; // NOSONAR
 	public static String Visible; // NOSONAR
+	public static String Visible_IN; // NOSONAR
+	public static String Visible_OUT; // NOSONAR
 	public static String VarConfig; // NOSONAR
 	public static String Width; // NOSONAR
 	public static String With; // NOSONAR
@@ -129,6 +132,17 @@ public final class FordiacMessages extends NLS {
 	public static String Dialog_Repair_Pin;// NOSONAR
 	public static String Dialog_Repair_Add;// NOSONAR
 	public static String Dialog_Repair_Remove;// NOSONAR
+
+	public static String Repair_Dialog_Delete_Elements; // NOSONAR
+	public static String Repair_Dialog_New_DataType;// NOSONAR
+	public static String Repair_Dialog_Pin_Add;// NOSONAR
+	public static String Repair_Dialog_Pin_Remove;// NOSONAR
+	public static String Repair_Dialog_FB_Title;// NOSONAR
+	public static String Repair_Dialog_New_FB;// NOSONAR
+	public static String Repair_Dialog_ChangeDataType;// NOSONAR
+	public static String Repair_Dialog_ChangeFBType;// NOSONAR
+	public static String Repair_Dialog_BestFitDataType;// NOSONAR
+	public static String Repair_Dialog_BestFitFBType;// NOSONAR
 
 	public static String Subapp_Size_DisableAutoResize; // NOSONAR
 

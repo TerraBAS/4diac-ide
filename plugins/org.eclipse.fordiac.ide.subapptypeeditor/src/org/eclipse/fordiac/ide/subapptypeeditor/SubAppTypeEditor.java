@@ -15,12 +15,8 @@
 package org.eclipse.fordiac.ide.subapptypeeditor;
 
 import org.eclipse.fordiac.ide.fbtypeeditor.editors.FBTypeEditor;
-import org.eclipse.fordiac.ide.model.libraryElement.FBType;
-import org.eclipse.fordiac.ide.model.typelibrary.SubAppTypeEntry;
-import org.eclipse.fordiac.ide.model.typelibrary.TypeEntry;
 import org.eclipse.fordiac.ide.model.ui.editors.AbstractBreadCrumbEditor;
 import org.eclipse.fordiac.ide.subapptypeeditor.editors.SubAppNetworkBreadCrumbEditor;
-import org.eclipse.jface.dialogs.IPageChangeProvider;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ISelectionProvider;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
@@ -95,35 +91,6 @@ public class SubAppTypeEditor extends FBTypeEditor {
 	public void init(final IEditorSite site, final IEditorInput input) throws PartInitException {
 		super.init(site, input);
 		site.setSelectionProvider(new SubAppTypeEditorSelectionProvider(this));
-	}
-
-	@Override
-	protected void addPages() {
-		super.addPages();
-		final IEditorPart subAppNetworkEditor = getEditor(SUBAPP_NETWORL_EDITOR_INDEX);
-		if (subAppNetworkEditor instanceof final IPageChangeProvider pageChangeProvider) {
-			pageChangeProvider.addPageChangedListener(ev -> updateOutline(SUBAPP_NETWORL_EDITOR_INDEX));
-		}
-	}
-
-	@Override
-	protected FBType getFBType(final TypeEntry typeEntry) {
-		if (typeEntry instanceof final SubAppTypeEntry subappEntry) {
-			return subappEntry.getTypeEditable();
-		}
-		return null;
-	}
-
-	@Override
-	protected boolean checkTypeEditorType(final FBType fbType, final String editorType) {
-		return (("ForAllTypes".equals(editorType)) || //$NON-NLS-1$
-				("subapp".equals(editorType))); //$NON-NLS-1$
-	}
-
-	@Override
-	protected boolean checkTypeSaveAble() {
-		// no additional checks are needed
-		return true;
 	}
 
 	@Override

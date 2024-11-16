@@ -34,12 +34,11 @@ public abstract class ResourceMarkerGraphicalAnnotationModel extends AbstractGra
 	private final IResourceChangeListener resourceChangeListener = this::resourceChanged;
 
 	protected ResourceMarkerGraphicalAnnotationModel(final IResource resource) {
-		Objects.requireNonNull(resource);
-		this.resource = resource;
+		this.resource = Objects.requireNonNull(resource);
 		resource.getWorkspace().addResourceChangeListener(resourceChangeListener);
-		reload();
 	}
 
+	@Override
 	public void reload() {
 		final Set<IMarker> markers = findMarkers();
 		final Set<GraphicalAnnotation> added = new HashSet<>();

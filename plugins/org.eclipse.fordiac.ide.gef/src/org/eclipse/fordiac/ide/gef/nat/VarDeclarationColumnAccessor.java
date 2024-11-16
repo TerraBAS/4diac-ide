@@ -30,6 +30,7 @@ import org.eclipse.fordiac.ide.model.datatype.helper.RetainHelper;
 import org.eclipse.fordiac.ide.model.edit.helper.CommentHelper;
 import org.eclipse.fordiac.ide.model.edit.helper.InitialValueHelper;
 import org.eclipse.fordiac.ide.model.libraryElement.Attribute;
+import org.eclipse.fordiac.ide.model.libraryElement.IInterfaceElement;
 import org.eclipse.fordiac.ide.model.libraryElement.VarDeclaration;
 import org.eclipse.fordiac.ide.ui.FordiacMessages;
 import org.eclipse.fordiac.ide.ui.widget.CommandExecutor;
@@ -56,9 +57,16 @@ public class VarDeclarationColumnAccessor extends AbstractColumnAccessor<VarDecl
 		case VAR_CONFIG -> Boolean.valueOf(rowObject.isVarConfig());
 		case VISIBLE -> Boolean.valueOf(rowObject.isVisible());
 		case RETAIN -> getAttributeValueAsString(rowObject);
+		case VISIBLEIN, VISIBLEOUT -> Boolean.valueOf(handleInOutCheck(rowObject, column));
 
 		default -> throw new IllegalArgumentException("Unexpected value: " + column); //$NON-NLS-1$
 		};
+	}
+
+	private static boolean handleInOutCheck(final VarDeclaration rowObject, final VarDeclarationTableColumn column) {
+		final IInterfaceElement interfaceElement = getCorrectVarInOutPin(rowObject, column);
+		return interfaceElement.isVisible();
+
 	}
 
 	private static String getAttributeValueAsString(final VarDeclaration rowObject) {
@@ -80,11 +88,26 @@ public class VarDeclarationColumnAccessor extends AbstractColumnAccessor<VarDecl
 		case VAR_CONFIG -> new ChangeVarConfigurationCommand(rowObject,
 				Boolean.parseBoolean(Objects.toString(newValue, NULL_DEFAULT)));
 		case VISIBLE -> new HidePinCommand(rowObject, Boolean.parseBoolean(Objects.toString(newValue, NULL_DEFAULT)));
+		case VISIBLEIN, VISIBLEOUT -> handleInOut(rowObject, column, newValue);
 		case RETAIN -> new ChangeRetainAttributeCommand(rowObject,
 				RetainHelper.deriveTag(rowObject.getAttributeValue(LibraryElementTags.RETAIN_ATTRIBUTE)),
 				RetainHelper.deriveTag(Objects.toString(newValue, NULL_DEFAULT)));
 		default -> throw new IllegalArgumentException("Unexpected value: " + column); //$NON-NLS-1$
 		};
+	}
+
+	private static Command handleInOut(final VarDeclaration rowObject, final VarDeclarationTableColumn column,
+			final Object newValue) {
+		final VarDeclaration varDeclaration = getCorrectVarInOutPin(rowObject, column);
+		return new HidePinCommand(varDeclaration, Boolean.parseBoolean(Objects.toString(newValue, NULL_DEFAULT)));
+	}
+
+	private static VarDeclaration getCorrectVarInOutPin(final VarDeclaration rowObject,
+			final VarDeclarationTableColumn column) {
+		if (column.equals(VarDeclarationTableColumn.VISIBLEIN)) {
+			return rowObject;
+		}
+		return rowObject.getInOutVarOpposite();
 	}
 
 	protected static String getInitialValue(final VarDeclaration rowObject) {

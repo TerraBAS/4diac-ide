@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2020, 2023 Primetals Technologies Germany GmbH,
+ * Copyright (c) 2020, 2024 Primetals Technologies Germany GmbH,
  *                          Johannes Kepler University Linz,
  *                          Primetals Technologies Austria GmbH
  *
@@ -83,7 +83,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
-import org.eclipse.ui.IEditorSite;
+import org.eclipse.ui.IReusableEditor;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.actions.WorkspaceModifyOperation;
 import org.eclipse.ui.dialogs.SaveAsDialog;
@@ -105,15 +105,6 @@ public class AutomationSystemEditor extends AbstractBreadCrumbEditor implements 
 	}
 
 	private final TypeEntryAdapter adapter = new TypeEntryAdapter(this);
-
-	@Override
-	public void init(final IEditorSite site, final IEditorInput input) throws PartInitException {
-		super.init(site, input);
-		loadSystem();
-		if (system != null) {
-			hookSystemEntry(system.getTypeEntry());
-		}
-	}
 
 	@Override
 	public void createPartControl(final Composite parent) {
@@ -141,13 +132,6 @@ public class AutomationSystemEditor extends AbstractBreadCrumbEditor implements 
 		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).grab(true, false).applyTo(messageLabel);
 	}
 
-	private void hookSystemEntry(final TypeEntry typeEntry) {
-		annotationModel = new FordiacMarkerGraphicalAnnotationModel(typeEntry.getFile());
-		validationJob = new ValidationJob(getPartName(), getCommandStack(), annotationModel);
-
-		typeEntry.eAdapters().add(adapter);
-	}
-
 	@Override
 	public String getTitleToolTip() {
 		final String tooltip = (system != null) ? system.getTypeEntry().getFullTypeName() + "\n" : ""; //$NON-NLS-1$ //$NON-NLS-2$
@@ -168,17 +152,6 @@ public class AutomationSystemEditor extends AbstractBreadCrumbEditor implements 
 			getModelToEditorNumMapping().put(system, Integer.valueOf(pagenum));
 		} catch (final PartInitException e) {
 			FordiacLogHelper.logError(e.getMessage(), e);
-		}
-	}
-
-	private void loadSystem() {
-		if (getEditorInput() instanceof final FileEditorInput fileEI) {
-			system = SystemManager.INSTANCE.getSystem(fileEI.getFile());
-			// register as listener and call this method
-			if (null != system) {
-				getCommandStack().addCommandStackEventListener(this);
-				getCommandStack().addCommandStackEventListener(subEditorCommandStackListener);
-			}
 		}
 	}
 
@@ -338,7 +311,7 @@ public class AutomationSystemEditor extends AbstractBreadCrumbEditor implements 
 				newSystemEntry.save(system, monitor);
 				oldSystemEntry.eAdapters().remove(adapter);
 				oldSystemEntry.setType(null);
-				hookSystemEntry(newSystemEntry);
+				setInput(new FileEditorInput(file));
 			}
 		};
 		try {
@@ -413,7 +386,6 @@ public class AutomationSystemEditor extends AbstractBreadCrumbEditor implements 
 		if (dirty && system != null) {
 			((SystemEntry) system.getTypeEntry()).setSystem(null);
 			system = null;
-			SystemManager.INSTANCE.notifyListeners();
 		}
 	}
 
@@ -450,8 +422,26 @@ public class AutomationSystemEditor extends AbstractBreadCrumbEditor implements 
 
 	@Override
 	public void setInput(final IEditorInput input) {
-		if (input != null) {
-			setPartName(TypeEntry.getTypeNameFromFileName(input.getName()));
+		if (validationJob != null) {
+			validationJob.dispose();
+			validationJob = null;
+		}
+		if (annotationModel != null) {
+			annotationModel.dispose();
+			annotationModel = null;
+		}
+		if (input instanceof final FileEditorInput fileEI) {
+			system = SystemManager.INSTANCE.getSystem(fileEI.getFile());
+			if (system != null) {
+				getCommandStack().addCommandStackEventListener(this);
+				getCommandStack().addCommandStackEventListener(subEditorCommandStackListener);
+				system.getTypeEntry().eAdapters().add(adapter);
+			}
+			setPartName(TypeEntry.getTypeNameFromFile(fileEI.getFile()));
+			annotationModel = new FordiacMarkerGraphicalAnnotationModel(fileEI.getFile(), () -> system);
+			validationJob = new ValidationJob(getPartName(), getCommandStack(), annotationModel);
+			pages.stream().filter(IReusableEditor.class::isInstance).map(IReusableEditor.class::cast)
+					.forEach(e -> e.setInput(fileEI));
 		}
 		setInputWithNotify(input);
 	}
@@ -477,17 +467,12 @@ public class AutomationSystemEditor extends AbstractBreadCrumbEditor implements 
 		Object selection = null;
 		final IEditorPart activeEditor = getActiveEditor();
 		if (activeEditor instanceof final DiagramEditorWithFlyoutPalette diagramEditor) {
-			selection = viewer.getEditPartRegistry().get(diagramEditor.getModel());
+			selection = viewer.getEditPartForModel(diagramEditor.getModel());
 		}
 		if (selection == null) {
 			selection = viewer.getRootEditPart();
 		}
 		return selection;
-	}
-
-	@Override
-	public LibraryElement getEditedElement() {
-		return system;
 	}
 
 }

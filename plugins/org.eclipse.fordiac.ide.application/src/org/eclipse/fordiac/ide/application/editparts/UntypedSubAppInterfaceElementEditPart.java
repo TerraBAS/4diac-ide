@@ -69,15 +69,17 @@ public class UntypedSubAppInterfaceElementEditPart extends InterfaceEditPartForF
 	public class UntypedSubappIEAdapter extends EContentAdapter {
 		@Override
 		public void notifyChanged(final Notification notification) {
-			final Object feature = notification.getFeature();
-			if (LibraryElementPackage.eINSTANCE.getIInterfaceElement_InputConnections().equals(feature)
-					|| LibraryElementPackage.eINSTANCE.getIInterfaceElement_OutputConnections().equals(feature)
-					|| LibraryElementPackage.eINSTANCE.getINamedElement_Name().equals(feature)
-					|| LibraryElementPackage.eINSTANCE.getINamedElement_Comment().equals(feature)) {
-				refresh();
-			} else if (LibraryElementPackage.eINSTANCE.getIInterfaceElement_Type().equals(feature)) {
-				updateConnectorBorderColor();
-				refreshToolTip();
+			if (getUntypedSubAppInterfaceElementEditPart().getParent() != null) {
+				final Object feature = notification.getFeature();
+				if (LibraryElementPackage.eINSTANCE.getIInterfaceElement_InputConnections().equals(feature)
+						|| LibraryElementPackage.eINSTANCE.getIInterfaceElement_OutputConnections().equals(feature)
+						|| LibraryElementPackage.eINSTANCE.getINamedElement_Name().equals(feature)
+						|| LibraryElementPackage.eINSTANCE.getINamedElement_Comment().equals(feature)) {
+					refresh();
+				} else if (LibraryElementPackage.eINSTANCE.getIInterfaceElement_Type().equals(feature)) {
+					updateConnectorBorderColor();
+					refreshToolTip();
+				}
 			}
 			super.notifyChanged(notification);
 		}
@@ -248,7 +250,7 @@ public class UntypedSubAppInterfaceElementEditPart extends InterfaceEditPartForF
 	}
 
 	@Override
-	protected List getModelChildren() {
+	protected List<? extends Object> getModelChildren() {
 		if (isInExpandedSubapp()) {
 			return targetPinManager.getModelChildren(isOverflow);
 		}
@@ -283,7 +285,7 @@ public class UntypedSubAppInterfaceElementEditPart extends InterfaceEditPartForF
 		if (key == ErrorMarkerDataTypeImpl.class) {
 			final IInterfaceElement model = getModel();
 			final ErrorMarkerDataTypeImpl marker = model instanceof VarDeclaration
-					? (ErrorMarkerDataTypeImpl) ((VarDeclaration) model).getType()
+					? (ErrorMarkerDataTypeImpl) model.getType()
 					: null;
 			return key.cast(marker);
 		}

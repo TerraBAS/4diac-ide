@@ -55,6 +55,10 @@ public class Import4diacProject extends Task {
 			workspace.setDescription(desc);
 			Job.getJobManager().cancel(null);
 
+			// ensure SystemManager is loaded
+			@SuppressWarnings("unused")
+			final SystemManager mgr = SystemManager.INSTANCE;
+
 			final IPath projectPath = getProjectPath();
 			final IProjectDescription description = loadProjectDescription(workspace, projectPath);
 			final IProject project = workspace.getRoot().getProject(description.getName());
@@ -143,8 +147,10 @@ public class Import4diacProject extends Task {
 	}
 
 	public static void waitBuilderJobsComplete() {
-		waitJobsComplete(job -> !(job.getName().startsWith("Compacting") //$NON-NLS-1$
-				|| job.getName().startsWith("Periodic workspace save."))); //$NON-NLS-1$
+		waitJobsComplete(job -> !(job.getName().equals(org.eclipse.core.internal.utils.Messages.utils_stringJobName)
+				|| job.getName().equals(org.eclipse.core.internal.utils.Messages.resources_snapshot)
+				|| job.getName().startsWith(org.eclipse.fordiac.ide.library.Messages.LibraryManager_DownloadJobName
+						.split("\\{\\d+\\}")[0]))); //$NON-NLS-1$
 	}
 
 	public static void runFullBuild(final IProject project) {

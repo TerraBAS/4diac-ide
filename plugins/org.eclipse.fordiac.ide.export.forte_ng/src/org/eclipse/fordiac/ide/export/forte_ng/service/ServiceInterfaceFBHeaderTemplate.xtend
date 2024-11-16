@@ -43,7 +43,7 @@ class ServiceInterfaceFBHeaderTemplate extends ForteFBTemplate<ServiceInterfaceF
 		
 		    «generateReadInputDataDeclaration»
 		    «generateWriteOutputDataDeclaration»
-		    «(type.interfaceList.inputVars + type.interfaceList.outputVars).generateSetInitialValuesDeclaration»
+		    «(type.interfaceList.inputVars + type.interfaceList.inOutVars + type.interfaceList.outputVars).generateSetInitialValuesDeclaration»
 		
 		  public:
 		    «FBClassName»(CStringDictionary::TStringId paInstanceNameId, forte::core::CFBContainer &paContainer);
@@ -57,7 +57,7 @@ class ServiceInterfaceFBHeaderTemplate extends ForteFBTemplate<ServiceInterfaceF
 	'''
 
 	override protected generateHeaderIncludes() '''
-		#include "funcbloc.h"
+		«generateDependencyInclude("funcbloc.h")»
 		«super.generateHeaderIncludes»
 	'''
 }

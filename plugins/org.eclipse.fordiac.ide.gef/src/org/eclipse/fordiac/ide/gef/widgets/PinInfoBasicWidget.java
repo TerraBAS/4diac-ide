@@ -21,7 +21,6 @@ import org.eclipse.fordiac.ide.gef.editors.TypeDeclarationEditor;
 import org.eclipse.fordiac.ide.model.commands.change.ChangeCommentCommand;
 import org.eclipse.fordiac.ide.model.commands.change.ChangeDataTypeCommand;
 import org.eclipse.fordiac.ide.model.commands.change.ChangeNameCommand;
-import org.eclipse.fordiac.ide.model.libraryElement.Event;
 import org.eclipse.fordiac.ide.model.libraryElement.FunctionFBType;
 import org.eclipse.fordiac.ide.model.libraryElement.IInterfaceElement;
 import org.eclipse.fordiac.ide.ui.FordiacMessages;
@@ -81,7 +80,6 @@ public class PinInfoBasicWidget implements CommandExecutor {
 	public void disableAllFields() {
 		nameText.setEnabled(false);
 		commentText.setEnabled(false);
-
 	}
 
 	public void refresh() {
@@ -130,17 +128,11 @@ public class PinInfoBasicWidget implements CommandExecutor {
 	}
 
 	protected boolean isTypeChangeable() {
-		// currently we have only one event type therefore we don't want it be
-		// changeable
-		return isEditable() && !(type instanceof Event) && hasNoConnections();
+		return isEditable();
 	}
 
 	public IInterfaceElement getType() {
 		return type;
-	}
-
-	private boolean hasNoConnections() {
-		return type.getOutputConnections().isEmpty() && type.getInputConnections().isEmpty();
 	}
 
 	public TypeSelectionWidget getTypeSelectionWidget() {
@@ -153,7 +145,7 @@ public class PinInfoBasicWidget implements CommandExecutor {
 
 	private void handleTypeSelectionChanged(final String newTypeName) {
 		if (isTypeChangeable()) {
-			executeCommand(ChangeDataTypeCommand.forTypeName(getType(), newTypeName));
+			executeCommand(ChangeDataTypeCommand.forTypeDeclaration(getType(), newTypeName));
 			// ensure that the new value is shown
 			final Consumer<Command> commandExecutorBuffer = commandExecutor;
 			commandExecutor = null;

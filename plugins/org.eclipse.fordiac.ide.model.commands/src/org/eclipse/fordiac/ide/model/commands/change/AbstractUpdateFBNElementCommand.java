@@ -25,7 +25,9 @@ import java.util.Set;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.fordiac.ide.model.ConnectionLayoutTagger;
+import org.eclipse.fordiac.ide.model.LibraryElementTags;
 import org.eclipse.fordiac.ide.model.commands.ScopedCommand;
 import org.eclipse.fordiac.ide.model.commands.create.AbstractConnectionCreateCommand;
 import org.eclipse.fordiac.ide.model.commands.create.AdapterConnectionCreateCommand;
@@ -39,6 +41,7 @@ import org.eclipse.fordiac.ide.model.errormarker.FordiacErrorMarkerInterfaceHelp
 import org.eclipse.fordiac.ide.model.libraryElement.AdapterType;
 import org.eclipse.fordiac.ide.model.libraryElement.ConfigurableFB;
 import org.eclipse.fordiac.ide.model.libraryElement.Connection;
+import org.eclipse.fordiac.ide.model.libraryElement.Demultiplexer;
 import org.eclipse.fordiac.ide.model.libraryElement.ErrorMarkerFBNElement;
 import org.eclipse.fordiac.ide.model.libraryElement.ErrorMarkerInterface;
 import org.eclipse.fordiac.ide.model.libraryElement.FBNetwork;
@@ -48,6 +51,7 @@ import org.eclipse.fordiac.ide.model.libraryElement.LibraryElementFactory;
 import org.eclipse.fordiac.ide.model.libraryElement.Resource;
 import org.eclipse.fordiac.ide.model.libraryElement.Value;
 import org.eclipse.fordiac.ide.model.libraryElement.VarDeclaration;
+import org.eclipse.fordiac.ide.model.libraryElement.impl.ConfigurableFBManagement;
 import org.eclipse.fordiac.ide.model.typelibrary.TypeEntry;
 import org.eclipse.gef.commands.Command;
 import org.eclipse.gef.commands.CompoundCommand;
@@ -139,6 +143,10 @@ public abstract class AbstractUpdateFBNElementCommand extends Command implements
 		// Map FB
 		if (resource != null) {
 			mapCmd = MapToCommand.createMapToCommand(newElement, resource);
+			if (mapCmd instanceof final MapToCommand mapToCommand) {
+				mapToCommand.setElementIndex(unmapCmd.getElementIndex());
+			}
+
 			if (mapCmd.canExecute()) {
 				mapCmd.execute();
 				recreateResourceConns(resourceConns);
@@ -151,7 +159,14 @@ public abstract class AbstractUpdateFBNElementCommand extends Command implements
 		if (newElement instanceof final ConfigurableFB configFb
 				&& oldElement instanceof final ConfigurableFB oldConfigFb) {
 			configFb.setDataType(oldConfigFb.getDataType());
-			configFb.updateConfiguration();
+
+			if (configFb instanceof final Demultiplexer newDemux && oldConfigFb instanceof final Demultiplexer oldDemux
+					&& oldDemux.isIsConfigured()) {
+				newDemux.loadConfiguration(LibraryElementTags.DEMUX_VISIBLE_CHILDREN,
+						ConfigurableFBManagement.buildVisibleChildrenString(oldDemux.getMemberVars()));
+			} else {
+				configFb.updateConfiguration();
+			}
 		}
 	}
 
@@ -197,7 +212,7 @@ public abstract class AbstractUpdateFBNElementCommand extends Command implements
 		}
 	}
 
-	public void setInterface() {
+	protected void setInterface() {
 		newElement.setInterface(newElement.getType().getInterfaceList().copy());
 	}
 
@@ -208,7 +223,6 @@ public abstract class AbstractUpdateFBNElementCommand extends Command implements
 						|| (!newDecl.isIsInput() && newDecl.getOutputConnections().isEmpty())) {
 					newDecl.setVisible(varDecl.isVisible());
 				}
-
 				newDecl.setVarConfig(varDecl.isVarConfig());
 			}
 		});
@@ -416,6 +430,7 @@ public abstract class AbstractUpdateFBNElementCommand extends Command implements
 			cmd.setDestination(dest);
 			cmd.setVisible(oldConn.isVisible());
 			cmd.setArrangementConstraints(oldConn.getRoutingData());
+			cmd.setElementIndex(fbn.getConnectionIndex(oldConn));
 			reconnCmds.add(cmd);
 		}
 	}
@@ -452,7 +467,29 @@ public abstract class AbstractUpdateFBNElementCommand extends Command implements
 		return new DataConnectionCreateCommand(fbn);
 	}
 
-	protected abstract void createNewFB();
+	protected void createNewFB() {
+		newElement = createCopiedFBEntry(oldElement);
+		setInterface();
+		handleConfigurableFB();
+		newElement.setName(oldElement.getName());
+		newElement.setPosition(EcoreUtil.copy(oldElement.getPosition()));
+		copyAttributes();
+		createValues();
+		transferInstanceComments();
+	}
+
+	private void copyAttributes() {
+		newElement.getAttributes().addAll(EcoreUtil.copyAll(oldElement.getAttributes()));
+		oldElement.getInterface().getAllInterfaceElements().stream().filter(ie -> !ie.getAttributes().isEmpty())
+				.forEach(ie -> {
+					final IInterfaceElement newIE = newElement.getInterfaceElement(ie.getName());
+					if (newIE != null) {
+						newIE.getAttributes().addAll(EcoreUtil.copyAll(ie.getAttributes()));
+					}
+				});
+	}
+
+	protected abstract FBNetworkElement createCopiedFBEntry(final FBNetworkElement srcElement);
 
 	public FBNetworkElement getOldElement() {
 		return oldElement;

@@ -1,14 +1,65 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.4"?>
 <plugin>
-   <extension
-         point="org.eclipse.debug.core.launchConfigurationTypes">
-      <launchConfigurationType
-            delegate="org.eclipse.fordiac.ide.deployment.debug.DeploymentLaunchConfigurationDelegate"
-            delegateName="Deploy"
-            id="org.eclipse.fordiac.ide.deployment.debug.deployLaunch"
-            modes="run"
-            name="Deploy">
-      </launchConfigurationType>
-   </extension>
+	<extension
+		point="org.eclipse.debug.core.launchConfigurationTypes">
+		<launchConfigurationType
+			delegate="org.eclipse.fordiac.ide.deployment.debug.DeploymentLaunchConfigurationDelegate"
+			delegateName="Deploy"
+			id="org.eclipse.fordiac.ide.deployment.debug.deployLaunch"
+			modes="run, debug, org.eclipse.fordiac.ide.deployment.debug.monitor"
+			name="Deploy">
+		</launchConfigurationType>
+		<launchConfigurationType
+			delegate="org.eclipse.fordiac.ide.deployment.debug.fb.DeploymentFBLaunchConfigurationDelegate"
+			delegateName="Remote Evaluate FB"
+			id="org.eclipse.fordiac.ide.deployment.debug.deployFBLaunch"
+			modes="run, debug"
+			name="Remote Evaluate FB"
+			sourceLocatorId="org.eclipse.fordiac.ide.debug.sourceLocator">
+		</launchConfigurationType>
+	</extension>
+	<extension
+		point="org.eclipse.debug.core.launchModes">
+		<launchMode
+			label="Monitor"
+			launchAsLabel="Monitor As"
+			mode="org.eclipse.fordiac.ide.deployment.debug.monitor">
+		</launchMode>
+	</extension>
+	<extension
+		id="org.eclipse.fordiac.ide.deployment.debug.watchpointMarker"
+		name="Watch"
+		point="org.eclipse.core.resources.markers">
+		<super
+			type="org.eclipse.debug.core.breakpointMarker">
+		</super>
+		<persistent
+			value="true">
+		</persistent>
+		<attribute
+			name="org.eclipse.fordiac.ide.deployment.debug.watchpointMarker.installed">
+		</attribute>
+		<attribute
+			name="org.eclipse.fordiac.ide.deployment.debug.watchpointMarker.forceValue">
+		</attribute>
+		<attribute
+			name="org.eclipse.fordiac.ide.deployment.debug.watchpointMarker.forceEnabled">
+		</attribute>
+	</extension>
+	<extension
+		point="org.eclipse.debug.core.breakpoints">
+		<breakpoint
+			class="org.eclipse.fordiac.ide.deployment.debug.breakpoint.DeploymentWatchpoint"
+			id="org.eclipse.fordiac.ide.deployment.debug.watchpoint"
+			markerType="org.eclipse.fordiac.ide.deployment.debug.watchpointMarker"
+			name="Watch">
+		</breakpoint>
+	</extension>
+	<extension
+		point="org.eclipse.core.runtime.preferences">
+		<initializer
+			class="org.eclipse.fordiac.ide.deployment.debug.preferences.DeploymentDebugPreferenceInitializer">
+		</initializer>
+	</extension>
 </plugin>

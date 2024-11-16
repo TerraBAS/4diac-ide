@@ -40,6 +40,7 @@ import org.eclipse.fordiac.ide.model.data.StructuredType
 import org.eclipse.fordiac.ide.model.libraryElement.AdapterType
 import org.eclipse.fordiac.ide.model.libraryElement.BasicFBType
 import org.eclipse.fordiac.ide.model.libraryElement.CompositeFBType
+import org.eclipse.fordiac.ide.model.libraryElement.SubAppType
 import org.eclipse.fordiac.ide.model.libraryElement.FunctionFBType
 import org.eclipse.fordiac.ide.model.libraryElement.INamedElement
 import org.eclipse.fordiac.ide.model.libraryElement.ServiceInterfaceFBType
@@ -47,6 +48,10 @@ import org.eclipse.fordiac.ide.model.libraryElement.SimpleFBType
 import org.eclipse.fordiac.ide.model.typelibrary.CMakeListsMarker
 
 import static extension org.eclipse.fordiac.ide.export.forte_ng.util.ForteNgExportUtil.*
+import org.eclipse.fordiac.ide.model.libraryElement.AttributeDeclaration
+import org.eclipse.fordiac.ide.export.Messages
+import java.text.MessageFormat
+import org.eclipse.fordiac.ide.model.libraryElement.AutomationSystem
 
 class ForteNgExportFilter extends TemplateExportFilter {
 
@@ -69,12 +74,20 @@ class ForteNgExportFilter extends TemplateExportFilter {
 				}
 			FunctionFBType:
 				#{
-					new FunctionFBHeaderTemplate(source, source.generateTypeInclude, Paths.get(source.generateTypePath)),
+					new FunctionFBHeaderTemplate(source, source.generateTypeInclude,
+						Paths.get(source.generateTypePath)),
 					new FunctionFBImplTemplate(source, source.generateTypeSource, Paths.get(source.generateTypePath))
 				}
+			SubAppType, AttributeDeclaration, AutomationSystem: // SubAppType is derived from CompositeFBType and needs to be handled first
+			{
+				warnings.add(MessageFormat.format(Messages.TemplateExportFilter_PREFIX_ERRORMESSAGE_WITH_TYPENAME,
+					source.typeEntry.file.fullPath.toString, Messages.TemplateExportFilter_FILE_IGNORED))
+				emptySet
+			}
 			CompositeFBType:
 				#{
-					new CompositeFBHeaderTemplate(source, source.generateTypeInclude, Paths.get(source.generateTypePath)),
+					new CompositeFBHeaderTemplate(source, source.generateTypeInclude,
+						Paths.get(source.generateTypePath)),
 					new CompositeFBImplTemplate(source, source.generateTypeSource, Paths.get(source.generateTypePath))
 				}
 			AdapterType:
@@ -84,13 +97,17 @@ class ForteNgExportFilter extends TemplateExportFilter {
 				}
 			ServiceInterfaceFBType:
 				#{
-					new ServiceInterfaceFBHeaderTemplate(source, source.generateTypeInclude, Paths.get(source.generateTypePath)),
-					new ServiceInterfaceFBImplTemplate(source, source.generateTypeSource, Paths.get(source.generateTypePath))
+					new ServiceInterfaceFBHeaderTemplate(source, source.generateTypeInclude,
+						Paths.get(source.generateTypePath)),
+					new ServiceInterfaceFBImplTemplate(source, source.generateTypeSource,
+						Paths.get(source.generateTypePath))
 				}
 			StructuredType:
 				#{
-					new StructuredTypeHeaderTemplate(source, source.generateTypeInclude, Paths.get(source.generateTypePath)),
-					new StructuredTypeImplTemplate(source, source.generateTypeSource, Paths.get(source.generateTypePath))
+					new StructuredTypeHeaderTemplate(source, source.generateTypeInclude,
+						Paths.get(source.generateTypePath)),
+					new StructuredTypeImplTemplate(source, source.generateTypeSource,
+						Paths.get(source.generateTypePath))
 				}
 			CMakeListsMarker:
 				#{
@@ -100,8 +117,10 @@ class ForteNgExportFilter extends TemplateExportFilter {
 				val languageSupport = ILanguageSupportFactory.createLanguageSupport("forte_ng", source)
 				if (languageSupport !== null) {
 					#{
-						new LanguageHeaderTemplate(languageSupport, source.generateTypeInclude, Paths.get(source.generateTypePath)),
-						new LanguageImplTemplate(languageSupport, source.generateTypeSource, Paths.get(source.generateTypePath))
+						new LanguageHeaderTemplate(languageSupport, source.generateTypeInclude,
+							Paths.get(source.generateTypePath)),
+						new LanguageImplTemplate(languageSupport, source.generateTypeSource,
+							Paths.get(source.generateTypePath))
 					}
 				} else {
 					errors.add('''Unknown source type «source.eClass.name»''')

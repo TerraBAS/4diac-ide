@@ -40,7 +40,7 @@ import org.eclipse.draw2d.geometry.Insets;
 import org.eclipse.fordiac.ide.gef.Activator;
 import org.eclipse.fordiac.ide.gef.Messages;
 import org.eclipse.fordiac.ide.gef.draw2d.ITransparencyFigure;
-import org.eclipse.fordiac.ide.gef.draw2d.UnderlineAlphaLabel;
+import org.eclipse.fordiac.ide.gef.draw2d.OverlayAlphaLabel;
 import org.eclipse.fordiac.ide.gef.listeners.IFontUpdateListener;
 import org.eclipse.fordiac.ide.gef.preferences.DiagramPreferences;
 import org.eclipse.fordiac.ide.model.edit.providers.TypeImageProvider;
@@ -105,7 +105,7 @@ public class FBShape extends Figure implements IFontUpdateListener, ITransparenc
 	/** The plugs. */
 	private final Figure plugs = new Figure();
 
-	private UnderlineAlphaLabel typeLabel;
+	private OverlayAlphaLabel typeLabel;
 
 	private static int maxWidth = -1;
 
@@ -184,7 +184,7 @@ public class FBShape extends Figure implements IFontUpdateListener, ITransparenc
 		return plugs;
 	}
 
-	public UnderlineAlphaLabel getTypeLabel() {
+	public OverlayAlphaLabel getTypeLabel() {
 		return typeLabel;
 	}
 
@@ -391,7 +391,6 @@ public class FBShape extends Figure implements IFontUpdateListener, ITransparenc
 
 	private static ToolbarLayout createInputContainerLayout() {
 		final ToolbarLayout toolbarLayout = new ToolbarLayout(false);
-		toolbarLayout.setSpacing(2);
 		toolbarLayout.setStretchMinorAxis(true);
 		return toolbarLayout;
 	}
@@ -399,7 +398,6 @@ public class FBShape extends Figure implements IFontUpdateListener, ITransparenc
 	private static ToolbarLayout createOutputContainerLayout() {
 		final ToolbarLayout layout = new ToolbarLayout(false);
 		layout.setStretchMinorAxis(true);
-		layout.setSpacing(2);
 		layout.setMinorAlignment(OrderedLayout.ALIGN_BOTTOMRIGHT);
 
 		return layout;
@@ -430,13 +428,13 @@ public class FBShape extends Figure implements IFontUpdateListener, ITransparenc
 		container.add(middle, BorderLayout.CENTER);
 
 		final GridLayout middleLayout = new GridLayout(1, true);
-		middleLayout.marginHeight = 1;
-		middleLayout.verticalSpacing = 1;
+		middleLayout.marginHeight = 0;
+		middleLayout.verticalSpacing = 0;
 		middleLayout.marginWidth = 3;
 
 		middle.setLayoutManager(middleLayout);
 
-		typeLabel = new UnderlineAlphaLabel();
+		typeLabel = new OverlayAlphaLabel();
 		changeTypeLabelText((null != type) ? type.getName() : Messages.FBFigure_TYPE_NOT_SET);
 		typeLabel.setTextAlignment(PositionConstants.CENTER);
 		typeLabel.setOpaque(true);
@@ -452,5 +450,4 @@ public class FBShape extends Figure implements IFontUpdateListener, ITransparenc
 		}
 		typeLabel.setText(text);
 	}
-
 }

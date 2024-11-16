@@ -21,7 +21,6 @@
 package org.eclipse.fordiac.ide.application.editparts;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.core.runtime.Assert;
@@ -38,7 +37,9 @@ import org.eclipse.fordiac.ide.application.figures.FBNetworkElementFigure;
 import org.eclipse.fordiac.ide.application.policies.DeleteFBNElementEditPolicy;
 import org.eclipse.fordiac.ide.application.policies.FBNElementSelectionPolicy;
 import org.eclipse.fordiac.ide.gef.annotation.AnnotableGraphicalEditPart;
+import org.eclipse.fordiac.ide.gef.annotation.FordiacAnnotationUtil;
 import org.eclipse.fordiac.ide.gef.annotation.GraphicalAnnotationModelEvent;
+import org.eclipse.fordiac.ide.gef.annotation.GraphicalAnnotationStyles;
 import org.eclipse.fordiac.ide.gef.editparts.AbstractPositionableElementEditPart;
 import org.eclipse.fordiac.ide.gef.editparts.AbstractViewEditPart;
 import org.eclipse.fordiac.ide.gef.editparts.InterfaceEditPart;
@@ -76,6 +77,7 @@ import org.eclipse.gef.requests.DirectEditRequest;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.widgets.Display;
 
 /** This class implements an EditPart for a FunctionBlock. */
 public abstract class AbstractFBNElementEditPart extends AbstractPositionableElementEditPart
@@ -125,10 +127,12 @@ public abstract class AbstractFBNElementEditPart extends AbstractPositionableEle
 			public void notifyChanged(final Notification notification) {
 				super.notifyChanged(notification);
 				if (!notification.isTouch()) {
-					refreshChildren();
-					// this ensure that parameters are correctly updated when pins are added or
-					// removed (e.g., errormarkerpins are deleted)
-					getParent().refresh();
+					Display.getDefault().execute(() -> {
+						refreshChildren();
+						// this ensure that parameters are correctly updated when pins are added or
+						// removed (e.g., errormarkerpins are deleted)
+						getParent().refresh();
+					});
 				}
 			}
 		};
@@ -225,6 +229,14 @@ public abstract class AbstractFBNElementEditPart extends AbstractPositionableEle
 	@Override
 	protected void refreshComment() {
 		refreshToolTip();
+	}
+
+	@Override
+	public <T> T getAdapter(final Class<T> key) {
+		if (key == FBNetworkElement.class) {
+			return key.cast(getModel());
+		}
+		return super.getAdapter(key);
 	}
 
 	@Override
@@ -379,12 +391,7 @@ public abstract class AbstractFBNElementEditPart extends AbstractPositionableEle
 
 	}
 
-	@SuppressWarnings("static-method")
-	protected List<VarDeclaration> getRemovedVarInOutPins(final boolean isInput) {
-		return Collections.emptyList();
-	}
-
-	private int getInterfaceInputElementIndex(final InterfaceEditPart interfaceEditPart,
+	private static int getInterfaceInputElementIndex(final InterfaceEditPart interfaceEditPart,
 			final InterfaceList interfaceList) {
 		if (interfaceEditPart.isEvent()) {
 			return interfaceList.getEventInputs().indexOf(interfaceEditPart.getModel());
@@ -393,12 +400,12 @@ public abstract class AbstractFBNElementEditPart extends AbstractPositionableEle
 			return interfaceList.getSockets().indexOf(interfaceEditPart.getModel());
 		}
 		if (interfaceEditPart.isVariable()) {
-			if (((VarDeclaration) interfaceEditPart.getModel()).isInOutVar()) {
-				final List<VarDeclaration> visInOutList = interfaceList.getInOutVars().stream()
-						.filter(vd -> !getRemovedVarInOutPins(true).contains(vd)).toList();
-				return visInOutList.indexOf(interfaceEditPart.getModel());
+			final VarDeclaration varDecl = (VarDeclaration) interfaceEditPart.getModel();
+			if (varDecl.isInOutVar()) {
+				return interfaceList.getInOutVars().stream().filter(VarDeclaration::isVisible).toList()
+						.indexOf(varDecl);
 			}
-			return interfaceList.getVisibleInputVars().indexOf(interfaceEditPart.getModel());
+			return interfaceList.getVisibleInputVars().indexOf(varDecl);
 		}
 		if (interfaceEditPart instanceof ErrorMarkerInterfaceEditPart) {
 			return calcErrorMarkerINdex(interfaceEditPart, interfaceList);
@@ -407,7 +414,7 @@ public abstract class AbstractFBNElementEditPart extends AbstractPositionableEle
 
 	}
 
-	private int getInterfaceOutputElementIndex(final InterfaceEditPart interfaceEditPart,
+	private static int getInterfaceOutputElementIndex(final InterfaceEditPart interfaceEditPart,
 			final InterfaceList interfaceList) {
 		if (interfaceEditPart.isEvent()) {
 			return interfaceList.getEventOutputs().indexOf(interfaceEditPart.getModel());
@@ -416,12 +423,12 @@ public abstract class AbstractFBNElementEditPart extends AbstractPositionableEle
 			return interfaceList.getPlugs().indexOf(interfaceEditPart.getModel());
 		}
 		if (interfaceEditPart.isVariable()) {
-			if (((VarDeclaration) interfaceEditPart.getModel()).isInOutVar()) {
-				final List<VarDeclaration> visInOutList = interfaceList.getOutMappedInOutVars().stream()
-						.filter(vd -> !getRemovedVarInOutPins(false).contains(vd)).toList();
-				return visInOutList.indexOf(interfaceEditPart.getModel());
+			final VarDeclaration varDecl = (VarDeclaration) interfaceEditPart.getModel();
+			if (varDecl.isInOutVar()) {
+				return interfaceList.getOutMappedInOutVars().stream().filter(VarDeclaration::isVisible).toList()
+						.indexOf(varDecl);
 			}
-			return interfaceList.getVisibleOutputVars().indexOf(interfaceEditPart.getModel());
+			return interfaceList.getVisibleOutputVars().indexOf(varDecl);
 		}
 		if (interfaceEditPart instanceof ErrorMarkerInterfaceEditPart) {
 			return calcErrorMarkerINdex(interfaceEditPart, interfaceList);
@@ -464,22 +471,47 @@ public abstract class AbstractFBNElementEditPart extends AbstractPositionableEle
 	@Override
 	protected List<Object> getModelChildren() {
 		final List<Object> elements = new ArrayList<>();
+
+		addBasicElements(elements);
+		removeInvisibleInOutVars(elements);
+		removeInvisibleInputOutputVars(elements);
+		addPinIndicators(elements);
+
+		return elements;
+	}
+
+	private void addBasicElements(final List<Object> elements) {
 		elements.add(getInstanceName());
 		elements.addAll(getModel().getInterface().getAllInterfaceElements());
+	}
+
+	private void removeInvisibleInOutVars(final List<Object> elements) {
+		final List<VarDeclaration> inoutInRemovalList = getModel().getInterface().getInOutVars().stream()
+				.filter(it -> !it.isVisible()).toList();
+		final List<VarDeclaration> inoutOutRemovalList = getModel().getInterface().getOutMappedInOutVars().stream()
+				.filter(it -> !it.isVisible()).toList();
+
+		elements.removeAll(inoutInRemovalList);
+		elements.removeAll(inoutOutRemovalList);
+	}
+
+	private void removeInvisibleInputOutputVars(final List<Object> elements) {
 		final List<VarDeclaration> inputRemovalList = getModel().getInterface().getInputVars().stream()
 				.filter(it -> !it.isVisible()).toList();
 		final List<VarDeclaration> outputRemovalList = getModel().getInterface().getOutputVars().stream()
 				.filter(it -> !it.isVisible()).toList();
-		final List<VarDeclaration> inoutInConList = getRemovedVarInOutPins(true);
-		final List<VarDeclaration> inoutOutConList = getRemovedVarInOutPins(false);
 
 		elements.removeAll(inputRemovalList);
 		elements.removeAll(outputRemovalList);
-		elements.removeAll(inoutInConList);
-		elements.removeAll(inoutOutConList);
-		elements.addAll(getPinIndicators(!inoutInConList.isEmpty(), !inoutOutConList.isEmpty()));
-		elements.addAll(getPinIndicators(!inputRemovalList.isEmpty(), !outputRemovalList.isEmpty()));
-		return elements;
+	}
+
+	private void addPinIndicators(final List<Object> elements) {
+		final boolean hasInvisibleInputs = !getModel().getInterface().getInputVars().stream()
+				.filter(it -> !it.isVisible()).toList().isEmpty();
+		final boolean hasInvisibleOutputs = !getModel().getInterface().getOutputVars().stream()
+				.filter(it -> !it.isVisible()).toList().isEmpty();
+
+		elements.addAll(getPinIndicators(hasInvisibleInputs, hasInvisibleOutputs));
 	}
 
 	protected List<Object> getPinIndicators(final boolean input, final boolean output) {
@@ -595,6 +627,10 @@ public abstract class AbstractFBNElementEditPart extends AbstractPositionableEle
 
 	@Override
 	public void updateAnnotations(final GraphicalAnnotationModelEvent event) {
+		GraphicalAnnotationStyles.updateAnnotationFeedback(getFigure(), getModel(), event,
+				FordiacAnnotationUtil::showOnTarget);
+		GraphicalAnnotationStyles.updateAnnotationFeedback(getFigure().getTypeLabel(), getModel(), event,
+				FordiacAnnotationUtil::showOnTargetType);
 		getChildren().stream().filter(InstanceNameEditPart.class::isInstance).map(InstanceNameEditPart.class::cast)
 				.forEach(child -> child.updateAnnotations(event));
 	}

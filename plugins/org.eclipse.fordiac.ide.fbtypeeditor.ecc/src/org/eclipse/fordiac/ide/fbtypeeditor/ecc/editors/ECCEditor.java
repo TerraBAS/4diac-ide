@@ -1,6 +1,6 @@
 /*******************************************************************************
- * Copyright (c) 2008 - 2018 Profactor GmbH, TU Wien ACIN, fortiss GmbH,
- * 				 2018 - 2019 Johannes Kepler University Linz
+ * Copyright (c) 2008, 2024 Profactor GmbH, TU Wien ACIN, fortiss GmbH,
+ * 				            Johannes Kepler University Linz
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -43,10 +43,7 @@ import org.eclipse.fordiac.ide.model.libraryElement.AutomationSystem;
 import org.eclipse.fordiac.ide.model.libraryElement.BasicFBType;
 import org.eclipse.fordiac.ide.model.libraryElement.ECAction;
 import org.eclipse.fordiac.ide.model.libraryElement.ECC;
-import org.eclipse.fordiac.ide.model.libraryElement.FBType;
 import org.eclipse.fordiac.ide.model.libraryElement.provider.ECCItemProvider;
-import org.eclipse.fordiac.ide.typemanagement.FBTypeEditorInput;
-import org.eclipse.fordiac.ide.ui.editors.EditorUtils;
 import org.eclipse.fordiac.ide.ui.imageprovider.FordiacImage;
 import org.eclipse.gef.ContextMenuProvider;
 import org.eclipse.gef.DefaultEditDomain;
@@ -75,6 +72,7 @@ import org.eclipse.ui.IEditorSite;
 import org.eclipse.ui.IWorkbenchPartSite;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.actions.ActionFactory;
+import org.eclipse.ui.views.contentoutline.IContentOutlinePage;
 
 /**
  * The Class ECCEditor.
@@ -109,20 +107,13 @@ public class ECCEditor extends DiagramEditorWithFlyoutPalette implements IFBTEdi
 		}
 	}
 
-	/** The fb type. */
-	private BasicFBType fbType;
-
-	public BasicFBType getFbType() {
-		return fbType;
+	@Override
+	public BasicFBType getType() {
+		return (BasicFBType) IFBTEditorPart.super.getType();
 	}
 
 	@Override
 	public void init(final IEditorSite site, final IEditorInput input) throws PartInitException {
-		setInput(input);
-		if ((input instanceof final FBTypeEditorInput fbtEditorInput)
-				&& (fbtEditorInput.getContent() instanceof final BasicFBType bfbType)) {
-			fbType = bfbType;
-		}
 		super.init(site, input);
 		setPartName(Messages.ECCEditor_LABEL_ECCEditorTabName);
 		setTitleImage(FordiacImage.ICON_ECC.getImage());
@@ -228,8 +219,7 @@ public class ECCEditor extends DiagramEditorWithFlyoutPalette implements IFBTEdi
 
 	@Override
 	public boolean outlineSelectionChanged(final Object selectedElement) {
-		final Object obj = getGraphicalViewer().getEditPartRegistry().get(selectedElement);
-		if (obj instanceof final EditPart ep) {
+		if (getGraphicalViewer().getEditPartForModel(selectedElement) instanceof final EditPart ep) {
 			getGraphicalViewer().select(ep);
 			return true;
 		}
@@ -245,11 +235,11 @@ public class ECCEditor extends DiagramEditorWithFlyoutPalette implements IFBTEdi
 	}
 
 	private void handleActionOutlineSelection(final ECAction action) {
-		Object obj = getGraphicalViewer().getEditPartRegistry().get(action.getECState());
+		Object obj = getGraphicalViewer().getEditPartForModel(action.getECState());
 		if (null != obj) {
 			for (final Object element : ((ECStateEditPart) obj).getCurrentChildren()) {
 				if ((element instanceof final ECActionAlgorithm ecAlg) && (action.equals(ecAlg.getAction()))) {
-					obj = getGraphicalViewer().getEditPartRegistry().get(element);
+					obj = getGraphicalViewer().getEditPartForModel(element);
 					if (null != obj) {
 						getGraphicalViewer().select((EditPart) obj);
 						break;
@@ -283,7 +273,7 @@ public class ECCEditor extends DiagramEditorWithFlyoutPalette implements IFBTEdi
 
 	@Override
 	public ECC getModel() {
-		return fbType.getECC();
+		return getType().getECC();
 	}
 
 	@Override
@@ -304,6 +294,9 @@ public class ECCEditor extends DiagramEditorWithFlyoutPalette implements IFBTEdi
 
 	@Override
 	public <T> T getAdapter(final Class<T> adapter) {
+		if (adapter == IContentOutlinePage.class) {
+			return null; // use outline page from FBTypeEditor
+		}
 		if (adapter == ECC.class) {
 			return adapter.cast(getModel());
 		}
@@ -319,14 +312,14 @@ public class ECCEditor extends DiagramEditorWithFlyoutPalette implements IFBTEdi
 
 	@Override
 	public void gotoMarker(final IMarker marker) {
-		final Map<?, ?> map = getGraphicalViewer().getEditPartRegistry();
+		final Map<Object, EditPart> map = getGraphicalViewer().getEditPartRegistry();
 		final String lineNumber = marker.getAttribute(IMarker.LINE_NUMBER, UNKNOWN_LINE);
 		if (!UNKNOWN_LINE.equals(lineNumber)) {
 			final int hashCode = Integer.parseInt(lineNumber);
 			for (final Object key : map.keySet()) {
 				if (key.hashCode() == hashCode) {
-					final Object obj = getGraphicalViewer().getEditPartRegistry().get(key);
-					if (obj instanceof final EditPart ep) {
+					final EditPart ep = getGraphicalViewer().getEditPartForModel(key);
+					if (ep != null) {
 						getGraphicalViewer().select(ep);
 						break;
 					}
@@ -341,22 +334,16 @@ public class ECCEditor extends DiagramEditorWithFlyoutPalette implements IFBTEdi
 	}
 
 	@Override
-	public void reloadType(final FBType type) {
-		if (type instanceof final BasicFBType bfbType) {
-			fbType = bfbType;
-			getGraphicalViewer().setContents(getModel());
-		} else {
-			EditorUtils.CloseEditor.run(this);
-		}
-
+	public void reloadType() {
+		getGraphicalViewer().setContents(getModel());
 	}
 
 	@Override
-	public Object getSelectableEditPart() {
+	public Object getSelectableObject() {
 		if (getGraphicalViewer() == null) {
 			return null;
 		}
-		return getGraphicalViewer().getEditPartRegistry().get(getModel());
+		return getGraphicalViewer().getEditPartForModel(getModel());
 	}
 
 }

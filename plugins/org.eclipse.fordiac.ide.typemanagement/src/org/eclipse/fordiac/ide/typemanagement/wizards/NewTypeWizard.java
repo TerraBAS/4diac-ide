@@ -80,7 +80,7 @@ public class NewTypeWizard extends Wizard implements INewWizard {
 		final String packageName = page1.getPackageName();
 		final TypeFromTemplateCreator creator = new TypeFromTemplateCreator(getTargetFile(), template, packageName);
 		try {
-			getContainer().run(true, true, creator::createTypeFromTemplate);
+			getContainer().run(false, true, creator::createTypeFromTemplate);
 		} catch (final InvocationTargetException e) {
 			FordiacLogHelper.logError(e.getMessage(), e);
 		} catch (final InterruptedException e) {
@@ -95,6 +95,11 @@ public class NewTypeWizard extends Wizard implements INewWizard {
 			return true;
 		}
 		return false;
+	}
+
+	public static void openTypeEditor(final IFile file) {
+		final IEditorDescriptor desc = PlatformUI.getWorkbench().getEditorRegistry().getDefaultEditor(file.getName());
+		EditorUtils.openEditor(new FileEditorInput(file), desc.getId());
 	}
 
 	private IFile getTargetFile() {
@@ -115,11 +120,6 @@ public class NewTypeWizard extends Wizard implements INewWizard {
 		final MessageBox mbx = new MessageBox(Display.getDefault().getActiveShell());
 		mbx.setMessage(MessageFormat.format(Messages.NewFBTypeWizard_TemplateNotAvailable, templatePath));
 		mbx.open();
-	}
-
-	private static void openTypeEditor(final IFile file) {
-		final IEditorDescriptor desc = PlatformUI.getWorkbench().getEditorRegistry().getDefaultEditor(file.getName());
-		EditorUtils.openEditor(new FileEditorInput(file), desc.getId());
 	}
 
 	public TypeEntry getTypeEntry() {

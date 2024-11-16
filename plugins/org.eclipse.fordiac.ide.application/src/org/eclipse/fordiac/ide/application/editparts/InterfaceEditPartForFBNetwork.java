@@ -1,6 +1,6 @@
 /*******************************************************************************
- * Copyright (c) 2008 - 2018 Profactor GmbH, fortiss GmbH
- * 				 2020 Primetals Technologies Germany GmbH
+ * Copyright (c) 2008, 2024 Profactor GmbH, fortiss GmbH,
+ *  						Primetals Technologies Germany GmbH
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -28,8 +28,7 @@ import org.eclipse.fordiac.ide.application.policies.AdapterNodeEditPolicy;
 import org.eclipse.fordiac.ide.application.policies.EventNodeEditPolicy;
 import org.eclipse.fordiac.ide.application.policies.VariableNodeEditPolicy;
 import org.eclipse.fordiac.ide.gef.FixedAnchor;
-import org.eclipse.fordiac.ide.gef.annotation.GraphicalAnnotationStyles.AnnotationCompoundBorder;
-import org.eclipse.fordiac.ide.gef.annotation.GraphicalAnnotationStyles.AnnotationFeedbackBorder;
+import org.eclipse.fordiac.ide.gef.annotation.GraphicalAnnotationStyles.AnnotationBorder;
 import org.eclipse.fordiac.ide.gef.editparts.InterfaceEditPart;
 import org.eclipse.fordiac.ide.model.libraryElement.CFBInstance;
 import org.eclipse.fordiac.ide.model.libraryElement.FBNetworkElement;
@@ -40,6 +39,7 @@ import org.eclipse.fordiac.ide.model.libraryElement.VarDeclaration;
 import org.eclipse.fordiac.ide.model.libraryElement.impl.ErrorMarkerDataTypeImpl;
 import org.eclipse.fordiac.ide.model.ui.actions.OpenListenerManager;
 import org.eclipse.fordiac.ide.model.ui.editors.HandlerHelper;
+import org.eclipse.gef.EditPart;
 import org.eclipse.gef.GraphicalEditPart;
 import org.eclipse.gef.GraphicalViewer;
 import org.eclipse.gef.Request;
@@ -79,8 +79,7 @@ public class InterfaceEditPartForFBNetwork extends InterfaceEditPart {
 		private boolean valueHasAnnotation() {
 			final IFigure fig = getValueFigure();
 			if (fig != null) {
-				final Border border = fig.getBorder();
-				return border instanceof AnnotationFeedbackBorder || border instanceof AnnotationCompoundBorder;
+				return fig.getBorder() instanceof AnnotationBorder;
 			}
 			return false;
 		}
@@ -91,8 +90,8 @@ public class InterfaceEditPartForFBNetwork extends InterfaceEditPart {
 
 		IFigure getValueFigure() {
 			if (valueFigure == null) {
-				final Object object = ieEP.getViewer().getEditPartRegistry().get(getValue());
-				if (object instanceof final GraphicalEditPart graphicalEditPart) {
+				final EditPart ep = ieEP.getViewer().getEditPartForModel(getValue());
+				if (ep instanceof final GraphicalEditPart graphicalEditPart) {
 					valueFigure = graphicalEditPart.getFigure();
 				}
 			}
@@ -174,10 +173,7 @@ public class InterfaceEditPartForFBNetwork extends InterfaceEditPart {
 	}
 
 	protected boolean isUnfoldedSubapp() {
-		if (getModel().getFBNetworkElement() instanceof final SubApp subApp && subApp.isUnfolded()) {
-			return true;
-		}
-		return false;
+		return (getModel().getFBNetworkElement() instanceof final SubApp subApp && subApp.isUnfolded());
 	}
 
 	@Override

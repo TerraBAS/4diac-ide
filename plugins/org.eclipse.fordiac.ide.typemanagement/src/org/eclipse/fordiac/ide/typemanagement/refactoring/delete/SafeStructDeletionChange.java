@@ -14,6 +14,7 @@
  *******************************************************************************/
 package org.eclipse.fordiac.ide.typemanagement.refactoring.delete;
 
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -30,7 +31,6 @@ import org.eclipse.fordiac.ide.model.libraryElement.VarDeclaration;
 import org.eclipse.fordiac.ide.model.search.types.DataTypeInstanceSearch;
 import org.eclipse.fordiac.ide.model.typelibrary.DataTypeEntry;
 import org.eclipse.fordiac.ide.typemanagement.Messages;
-import org.eclipse.fordiac.ide.typemanagement.refactoring.InterfaceDataTypeChange;
 import org.eclipse.fordiac.ide.typemanagement.refactoring.UpdateFBInstanceChange;
 import org.eclipse.fordiac.ide.typemanagement.refactoring.UpdateFBTypeInterfaceChange;
 import org.eclipse.fordiac.ide.typemanagement.refactoring.UpdateManipulatorChange;
@@ -42,7 +42,7 @@ public class SafeStructDeletionChange extends CompositeChange {
 	final Map<EObject, RootNodeChange> rootChanges = new HashMap<>();
 
 	public SafeStructDeletionChange(final StructuredType struct) {
-		super(Messages.DeleteFBTypeParticipant_Change_SafeDeletionChangeTitle);
+		super(MessageFormat.format(Messages.DeleteFBTypeParticipant_Change_SafeDeletionChangeTitle, struct.getName()));
 		deletedStruct = (DataTypeEntry) struct.getTypeEntry();
 		createChanges(deletedStruct);
 	}
@@ -60,20 +60,17 @@ public class SafeStructDeletionChange extends CompositeChange {
 					} else if (isUntypedSubappPin(varDecl)) {
 						rootChange.add(new UpdateUntypedSubappPinChange(varDecl));
 					} else if (isFbTypePin(varDecl)) {
-						rootChange.add(new UpdateFBTypeInterfaceChange((FBType) varDecl.eContainer().eContainer(),
-								(StructuredType) varDecl.getType()));
 						handleTransitiveRefactoring(varDecl, rootChange, doneElements);
 					}
 				} else if (eObject instanceof final StructManipulator muxer && doneElements.add(muxer)) {
-					final boolean isDeletion = deletedStruct == muxer.getDataType().getTypeEntry();
-					rootChange.add(new UpdateManipulatorChange(muxer, isDeletion));
+					rootChange.add(new UpdateManipulatorChange(muxer));
 				}
 			});
 		}
 	}
 
 	private RootNodeChange getOrCreateRootChange(EObject eObject) {
-		if (eObject instanceof final INamedElement node) {
+		if (eObject instanceof INamedElement) {
 			eObject = EcoreUtil.getRootContainer(eObject);
 			final RootNodeChange change = new RootNodeChange(eObject);
 			if (!rootChanges.containsKey(eObject)) {
@@ -107,8 +104,9 @@ public class SafeStructDeletionChange extends CompositeChange {
 		} else if (rootElements.add(rootContainer)) {
 			if (rootContainer instanceof final StructuredType stElement) {
 				createChanges((DataTypeEntry) stElement.getTypeEntry());
-			} else if (rootContainer instanceof final FBType fbType) {
-				rootChange.add(new InterfaceDataTypeChange(fbType, dataTypeEntry));
+			} else if (rootContainer instanceof final FBType fbType
+					&& dataTypeEntry.getType() instanceof final StructuredType type) {
+				rootChange.add(new UpdateFBTypeInterfaceChange(fbType, type));
 			}
 		}
 	}

@@ -3,6 +3,7 @@
  * 				 2020 Andrea Zoitl
  *               2020 Johannes Kepler University Linz
  *               2022 Martin Erich Jobst
+ *               2024 Primetals Technologies Austria GmbH
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -18,6 +19,7 @@
  *     - externalized all translatable strings
  *   Ernst Blecha
  *     - improved error handling and handling of forceOverwrite
+ *     - Add "Overwrite All" and "Cancel All"
  *******************************************************************************/
 package org.eclipse.fordiac.ide.export;
 
@@ -39,6 +41,7 @@ import org.eclipse.fordiac.ide.export.utils.CompareEditorOpenerUtil;
 import org.eclipse.fordiac.ide.export.utils.DelayedFiles;
 import org.eclipse.fordiac.ide.export.utils.DelayedFiles.StoredFiles;
 import org.eclipse.fordiac.ide.model.libraryElement.INamedElement;
+import org.eclipse.fordiac.ide.model.typelibrary.TypeLibraryManager;
 import org.eclipse.fordiac.ide.ui.FordiacLogHelper;
 import org.eclipse.jface.dialogs.IDialogLabelKeys;
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -50,15 +53,21 @@ public abstract class TemplateExportFilter extends ExportFilter {
 	// Prepare the button labels
 	private static final String[] BUTTON_LABELS = new String[] { //
 			Messages.TemplateExportFilter_OVERWRITE_LABEL_STRING, //
+			Messages.TemplateExportFilter_OVERWRITE_ALL_LABEL_STRING, //
 			Messages.TemplateExportFilter_MERGE_LABEL_STRING, //
+			Messages.TemplateExportFilter_CANCEL_ALL_LABEL_STRING, //
 			JFaceResources.getString(IDialogLabelKeys.CANCEL_LABEL_KEY)//
 	};
 
 	// extract the button ids from the label-array (avoid magic numbers)
 	private static final int BUTTON_OVERWRITE = Arrays.asList(BUTTON_LABELS)
 			.indexOf(Messages.TemplateExportFilter_OVERWRITE_LABEL_STRING);
+	private static final int BUTTON_OVERWRITE_ALL = Arrays.asList(BUTTON_LABELS)
+			.indexOf(Messages.TemplateExportFilter_OVERWRITE_ALL_LABEL_STRING);
 	private static final int BUTTON_MERGE = Arrays.asList(BUTTON_LABELS)
 			.indexOf(Messages.TemplateExportFilter_MERGE_LABEL_STRING);
+	private static final int BUTTON_CANCEL_ALL = Arrays.asList(BUTTON_LABELS)
+			.indexOf(Messages.TemplateExportFilter_CANCEL_ALL_LABEL_STRING);
 
 	protected TemplateExportFilter() {
 	}
@@ -74,7 +83,7 @@ public abstract class TemplateExportFilter extends ExportFilter {
 
 	@Override
 	public final void export(final IFile typeFile, final String destination, final boolean forceOverwrite)
-			throws ExportException {
+			throws ExportException.UserInteraction {
 		this.export(typeFile, destination, forceOverwrite, null);
 	}
 
@@ -98,7 +107,12 @@ public abstract class TemplateExportFilter extends ExportFilter {
 
 	@Override
 	public void export(final IFile typeFile, final String destination, final boolean forceOverwrite, EObject source)
-			throws ExportException {
+			throws ExportException.UserInteraction {
+		if (source == null && typeFile != null && TypeLibraryManager.INSTANCE.getTypeEntryForFile(typeFile) == null) {
+			getWarnings().add(MessageFormat.format(Messages.TemplateExportFilter_PREFIX_ERRORMESSAGE_WITH_TYPENAME,
+					typeFile.getFullPath(), Messages.TemplateExportFilter_FILE_IGNORED));
+			return; // Do not export files passed to the export that are not in the TypeLibrary
+		}
 		try {
 			if (source == null && typeFile != null) {
 				final ResourceSet resourceSet = new ResourceSetImpl();
@@ -127,11 +141,14 @@ public abstract class TemplateExportFilter extends ExportFilter {
 				// create a message dialog to ask about merging if forceOverwrite is not set
 				final String msg = MessageFormat.format(Messages.TemplateExportFilter_OVERWRITE_REQUEST,
 						stringsToTextualList(files.getFilenames()));
-				final MessageDialog msgDiag = new MessageDialog(Display.getDefault().getActiveShell(),
-						Messages.TemplateExportFilter_FILE_EXISTS, null, msg, MessageDialog.QUESTION_WITH_CANCEL,
-						BUTTON_LABELS, 0);
 
-				res = msgDiag.open();
+				res = Display.getDefault().syncCall(() -> {
+					final MessageDialog msgDiag = new MessageDialog(Display.getDefault().getActiveShell(),
+							Messages.TemplateExportFilter_FILE_EXISTS, null, msg, MessageDialog.QUESTION_WITH_CANCEL,
+							BUTTON_LABELS, 0);
+					return Integer.valueOf(msgDiag.open());
+				}).intValue();
+
 			}
 
 			// from here on forceOverwrite and the BUTTON_OVERWRITE can be handled the same
@@ -146,7 +163,18 @@ public abstract class TemplateExportFilter extends ExportFilter {
 				if (!overwrite) {
 					openMergeEditor(writtenFiles);
 				}
+			} else if (res == BUTTON_OVERWRITE_ALL) {
+				throw (new ExportException.OverwriteAll());
+			} else if (res == BUTTON_CANCEL_ALL) {
+				throw (new ExportException.CancelAll());
+			} else { // the cancel button was selected / ESC pressed
+				getWarnings().add(MessageFormat.format(Messages.TemplateExportFilter_PREFIX_ERRORMESSAGE_WITH_TYPENAME,
+						typeFile != null ? typeFile.getFullPath() : name,
+						Messages.TemplateExportFilter_EXPORT_CANCELED));
 			}
+
+		} catch (final ExportException.UserInteraction e) {
+			throw (e);
 		} catch (final Exception t) {
 			FordiacLogHelper.logError(Messages.TemplateExportFilter_ErrorDuringTemplateGeneration, t);
 			this.getErrors().add(t.getMessage() != null ? t.getMessage()
@@ -178,29 +206,20 @@ public abstract class TemplateExportFilter extends ExportFilter {
 	}
 
 	private static void openMergeEditor(final Iterable<StoredFiles> writtenFiles) throws ExportException {
-		final ICompareEditorOpener opener = CompareEditorOpenerUtil.getOpener();
-		if (null == opener) {
-			throw new ExportException(Messages.TemplateExportFilter_MERGE_EDITOR_FAILED);
-		}
-		boolean diffs = false;
 		for (final StoredFiles sf : writtenFiles) {
-			if ((null != sf.getNewFile()) && (null != sf.getOldFile())) {
-				opener.setName(sf.getNewFile().getName());
-				opener.setTitle(sf.getNewFile().getName());
-				opener.setNewFile(sf.getNewFile());
-				opener.setOriginalFile(sf.getOldFile());
+			if ((null != sf.newFile()) && (null != sf.oldFile())) {
+				final ICompareEditorOpener opener = CompareEditorOpenerUtil.getOpener();
+				if (null == opener) {
+					throw new ExportException(Messages.TemplateExportFilter_MERGE_EDITOR_FAILED);
+				}
+				opener.setName(sf.newFile().getName());
+				opener.setTitle(sf.newFile().getName());
+				opener.setNewFile(sf.newFile());
+				opener.setOriginalFile(sf.oldFile());
 				if (opener.hasDifferences()) {
-					opener.openCompareEditor();
-					diffs = true;
+					Display.getDefault().asyncExec(opener::openCompareEditor);
 				}
 			}
-		}
-
-		if (!diffs) {
-			// there were no differences - inform the user
-			MessageDialog.openInformation(Display.getDefault().getActiveShell(),
-					Messages.TemplateExportFilter_NO_DIFFERENCES_TITLE,
-					Messages.TemplateExportFilter_NO_DIFFERENCES_MESSAGE);
 		}
 	}
 

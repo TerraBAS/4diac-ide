@@ -38,7 +38,6 @@ import org.eclipse.fordiac.ide.deployment.iec61499.ResponseMapping;
 import org.eclipse.fordiac.ide.deployment.iec61499.handlers.EthernetDeviceManagementCommunicationHandler;
 import org.eclipse.fordiac.ide.deployment.interactors.AbstractDeviceManagementInteractor;
 import org.eclipse.fordiac.ide.deployment.interactors.ForteTypeNameCreator;
-import org.eclipse.fordiac.ide.deployment.monitoringbase.MonitoringBaseElement;
 import org.eclipse.fordiac.ide.model.libraryElement.Device;
 import org.eclipse.fordiac.ide.model.libraryElement.FBNetworkElement;
 import org.eclipse.fordiac.ide.model.libraryElement.IInterfaceElement;
@@ -84,8 +83,7 @@ public class DeploymentExecutor extends AbstractDeviceManagementInteractor {
 	private int id = 0;
 
 	String getNextId() {
-		id++;
-		return Integer.toString(id);
+		return Integer.toString(id++);
 	}
 
 	private final ResponseMapping respMapping = new ResponseMapping();
@@ -142,8 +140,11 @@ public class DeploymentExecutor extends AbstractDeviceManagementInteractor {
 
 	protected String generateWriteParamRequest(final String targetElementName, final String parameter,
 			final String value) {
-		return MessageFormat.format(getWriteParameterMessage(), getNextId(), value,
-				targetElementName + "." + parameter); //$NON-NLS-1$
+		return generateWriteParamRequest(targetElementName + "." + parameter, value); //$NON-NLS-1$
+	}
+
+	protected String generateWriteParamRequest(final String name, final String value) {
+		return MessageFormat.format(getWriteParameterMessage(), getNextId(), value, name);
 	}
 
 	@SuppressWarnings("static-method") // this method needs to be overwritable by subclasses
@@ -158,6 +159,20 @@ public class DeploymentExecutor extends AbstractDeviceManagementInteractor {
 		retVal = retVal.replace("<", "&lt;"); //$NON-NLS-1$ //$NON-NLS-2$
 		retVal = retVal.replace(">", "&gt;"); //$NON-NLS-1$ //$NON-NLS-2$
 		return retVal;
+	}
+
+	@Override
+	public void writeFBParameter(final Resource resource, final String name, final String value)
+			throws DeploymentException {
+		final String encodedValue = encodeXMLChars(value);
+		final String request = generateWriteParamRequest(name, encodedValue);
+		try {
+			sendREQ(resource.getName(), request);
+		} catch (final IOException e) {
+			throw new DeploymentException(
+					MessageFormat.format(Messages.DeploymentExecutor_WriteFBParameterFailed, resource.getName(), name),
+					e);
+		}
 	}
 
 	@Override
@@ -201,8 +216,7 @@ public class DeploymentExecutor extends AbstractDeviceManagementInteractor {
 
 	@Override
 	public void startResource(final Resource res) throws DeploymentException {
-		final String request = MessageFormat.format(START, Integer.valueOf(id));
-		id++;
+		final String request = MessageFormat.format(START, Integer.valueOf(getNextId()));
 		try {
 			sendREQ(res.getName(), request);
 		} catch (final IOException e) {
@@ -213,8 +227,7 @@ public class DeploymentExecutor extends AbstractDeviceManagementInteractor {
 
 	@Override
 	public void stopResource(final Resource res) throws DeploymentException {
-		final String request = MessageFormat.format(STOP, Integer.valueOf(id));
-		id++;
+		final String request = MessageFormat.format(STOP, Integer.valueOf(getNextId()));
 		try {
 			sendREQ(res.getName(), request);
 		} catch (final IOException e) {
@@ -225,8 +238,7 @@ public class DeploymentExecutor extends AbstractDeviceManagementInteractor {
 
 	@Override
 	public void startDevice(final Device dev) throws DeploymentException {
-		final String request = MessageFormat.format(START, Integer.valueOf(id));
-		id++;
+		final String request = MessageFormat.format(START, Integer.valueOf(getNextId()));
 		try {
 			sendREQ("", request); //$NON-NLS-1$
 		} catch (final IOException e) {
@@ -239,9 +251,8 @@ public class DeploymentExecutor extends AbstractDeviceManagementInteractor {
 	public void writeDeviceParameter(final Device device, final String parameter, final String value)
 			throws DeploymentException {
 		final String encodedValue = encodeXMLChars(value);
-		final String request = MessageFormat.format(getWriteParameterMessage(), Integer.valueOf(id), encodedValue,
-				parameter);
-		id++;
+		final String request = MessageFormat.format(getWriteParameterMessage(), Integer.valueOf(getNextId()),
+				encodedValue, parameter);
 		try {
 			sendREQ("", request); //$NON-NLS-1$
 		} catch (final IOException e) {
@@ -385,73 +396,60 @@ public class DeploymentExecutor extends AbstractDeviceManagementInteractor {
 	}
 
 	@Override
-	public void addWatch(final MonitoringBaseElement element) throws DeploymentException {
-		final String request = MessageFormat.format(ADD_WATCH, getNextId(), element.getQualifiedString(), "*"); //$NON-NLS-1$
+	public boolean addWatch(final Resource resource, final String name) throws DeploymentException {
+		final String request = MessageFormat.format(ADD_WATCH, getNextId(), name, "*"); //$NON-NLS-1$
 		try {
-			final String response = sendREQ(element.getResourceString(), request);
-
-			// TODO show somehow the feedback if the response contained a reason that it
-			// didn't work
-			element.setOffline("".equals(response)); //$NON-NLS-1$
+			final String response = sendREQ(resource.getName(), request);
+			return !response.isBlank();
 		} catch (final IOException e) {
-			throw new DeploymentException(
-					MessageFormat.format(Messages.DeploymentExecutor_AddWatchesFailed, element.getQualifiedString()),
+			throw new DeploymentException(MessageFormat.format(Messages.DeploymentExecutor_AddWatchesFailed, name), e);
+		}
+	}
+
+	@Override
+	public boolean removeWatch(final Resource resource, final String name) throws DeploymentException {
+		final String request = MessageFormat.format(DELETE_WATCH, getNextId(), name, "*"); //$NON-NLS-1$
+		try {
+			final String response = sendREQ(resource.getName(), request);
+			return !response.isBlank();
+		} catch (final IOException e) {
+			throw new DeploymentException(MessageFormat.format(Messages.DeploymentExecutor_DeleteWatchesFailed, name),
 					e);
 		}
 	}
 
 	@Override
-	public void removeWatch(final MonitoringBaseElement element) throws DeploymentException {
-		final String request = MessageFormat.format(DELETE_WATCH, getNextId(), element.getQualifiedString(), "*"); //$NON-NLS-1$
-		try {
-			final String response = sendREQ(element.getResourceString(), request);
-			// TODO show somehow the feedback if the response contained a reason that it
-			// didn't work
-			element.setOffline("".equals(response)); //$NON-NLS-1$
-		} catch (final IOException e) {
-			throw new DeploymentException(
-					MessageFormat.format(Messages.DeploymentExecutor_DeleteWatchesFailed, element.getQualifiedString()),
-					e);
-		}
-	}
-
-	@Override
-	public void triggerEvent(final MonitoringBaseElement element) throws DeploymentException {
+	public void triggerEvent(final Resource resource, final String name) throws DeploymentException {
 		final String request = MessageFormat.format(getWriteParameterMessage(), getNextId(), "$e", //$NON-NLS-1$
-				element.getQualifiedString());
+				name);
 		try {
-			sendREQ(element.getResourceString(), request);
+			sendREQ(resource.getName(), request);
 		} catch (final IOException e) {
-			throw new DeploymentException(
-					MessageFormat.format(Messages.DeploymentExecutor_TriggerEventFailed, element.getQualifiedString()),
+			throw new DeploymentException(MessageFormat.format(Messages.DeploymentExecutor_TriggerEventFailed, name),
 					e);
 		}
 	}
 
 	@Override
-	public void forceValue(final MonitoringBaseElement element, final String value) throws DeploymentException {
+	public void forceValue(final Resource resource, final String name, final String value) throws DeploymentException {
 		final String encodedValue = encodeXMLChars(value);
-		final String request = MessageFormat.format(FORCE_VALUE, getNextId(), encodedValue,
-				element.getQualifiedString(), "true"); //$NON-NLS-1$
+		final String request = MessageFormat.format(FORCE_VALUE, getNextId(), encodedValue, name, "true"); //$NON-NLS-1$
 		try {
-			sendREQ(element.getResourceString(), request);
+			sendREQ(resource.getName(), request);
 		} catch (final IOException e) {
-			throw new DeploymentException(MessageFormat.format(Messages.DeploymentExecutor_ForceValueFailed,
-					element.getQualifiedString(), value), e);
+			throw new DeploymentException(
+					MessageFormat.format(Messages.DeploymentExecutor_ForceValueFailed, name, value), e);
 		}
 	}
 
 	@Override
-	public void clearForce(final MonitoringBaseElement element) throws DeploymentException {
-		final String request = MessageFormat.format(FORCE_VALUE, getNextId(), "*", element.getQualifiedString(), //$NON-NLS-1$
+	public void clearForce(final Resource resource, final String name) throws DeploymentException {
+		final String request = MessageFormat.format(FORCE_VALUE, getNextId(), "*", name, //$NON-NLS-1$
 				"false"); //$NON-NLS-1$
 		try {
-			sendREQ(element.getResourceString(), request);
+			sendREQ(resource.getName(), request);
 		} catch (final IOException e) {
-			throw new DeploymentException(
-					MessageFormat.format(Messages.DeploymentExecutor_ClearForceFailed, element.getQualifiedString()),
-					e);
+			throw new DeploymentException(MessageFormat.format(Messages.DeploymentExecutor_ClearForceFailed, name), e);
 		}
 	}
-
 }

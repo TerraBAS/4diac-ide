@@ -21,13 +21,26 @@ package org.eclipse.fordiac.ide.export.forte_ng.simple
 import java.nio.file.Path
 import org.eclipse.fordiac.ide.export.forte_ng.base.BaseFBHeaderTemplate
 import org.eclipse.fordiac.ide.model.libraryElement.SimpleFBType
+import org.eclipse.fordiac.ide.model.libraryElement.SimpleECState
 
 class SimpleFBHeaderTemplate extends BaseFBHeaderTemplate<SimpleFBType> {
 	new(SimpleFBType type, String name, Path prefix) {
 		super(type, name, prefix, "CSimpleFB")
 	}
 
-	override generateClassInclude() '''#include "simplefb.h"'''
+	override generateClassInclude() '''«generateDependencyInclude("simplefb.h")»'''
 
-	override generateAdditionalDeclarations() { "" }
+	override generateAdditionalDeclarations() '''
+		«generateStates»
+	'''
+	
+	def protected generateStates() '''
+		«FOR state : type.simpleECStates AFTER '\n'»
+			«state.generateState»
+		«ENDFOR»
+	'''
+
+	def protected CharSequence generateState(SimpleECState state) '''
+		void enterState«state.name»(CEventChainExecutionThread *const paECET);
+	'''
 }

@@ -6,6 +6,13 @@ on:
     types:
       - completed
 
+permissions:
+  checks: write
+  pull-requests: write
+  contents: read
+  issues: read
+  actions: read
+
 jobs:
   unit-test-results:
     name: Unit Test Results
@@ -29,9 +36,11 @@ jobs:
            done
 
       - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        uses: EnricoMi/publish-unit-test-result-action@170bf24d20d201b842d7a52403b73ed297e6645b # v2.18.0
         with:
           commit: ${{ github.event.workflow_run.head_sha }}
+          event_file: artifacts/event_file/event.json
+          event_name: ${{ github.event.workflow_run.event }}
           files: "artifacts/**/*.xml"
 
 

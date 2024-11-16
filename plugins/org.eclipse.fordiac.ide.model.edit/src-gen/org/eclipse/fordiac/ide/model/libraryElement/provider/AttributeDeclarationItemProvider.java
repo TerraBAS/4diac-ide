@@ -34,7 +34,6 @@ import org.eclipse.emf.edit.provider.ItemProviderAdapter;
 import org.eclipse.emf.edit.provider.ViewerNotification;
 import org.eclipse.fordiac.ide.model.data.provider.FordiacEditPlugin;
 import org.eclipse.fordiac.ide.model.libraryElement.AttributeDeclaration;
-import org.eclipse.fordiac.ide.model.libraryElement.LibraryElementFactory;
 import org.eclipse.fordiac.ide.model.libraryElement.LibraryElementPackage;
 
 /**
@@ -173,9 +172,7 @@ public class AttributeDeclarationItemProvider extends ItemProviderAdapter implem
 	public Collection<? extends EStructuralFeature> getChildrenFeatures(Object object) {
 		if (childrenFeatures == null) {
 			super.getChildrenFeatures(object);
-			childrenFeatures.add(LibraryElementPackage.Literals.LIBRARY_ELEMENT__VERSION_INFO);
-			childrenFeatures.add(LibraryElementPackage.Literals.LIBRARY_ELEMENT__IDENTIFICATION);
-			childrenFeatures.add(LibraryElementPackage.Literals.LIBRARY_ELEMENT__COMPILER_INFO);
+			childrenFeatures.add(LibraryElementPackage.Literals.CONFIGURABLE_OBJECT__ATTRIBUTES);
 		}
 		return childrenFeatures;
 	}
@@ -231,13 +228,13 @@ public class AttributeDeclarationItemProvider extends ItemProviderAdapter implem
 		switch (notification.getFeatureID(AttributeDeclaration.class)) {
 			case LibraryElementPackage.ATTRIBUTE_DECLARATION__NAME:
 			case LibraryElementPackage.ATTRIBUTE_DECLARATION__COMMENT:
-			case LibraryElementPackage.ATTRIBUTE_DECLARATION__ATTRIBUTES:
-			case LibraryElementPackage.ATTRIBUTE_DECLARATION__TYPE_ENTRY:
-				fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), false, true));
-				return;
 			case LibraryElementPackage.ATTRIBUTE_DECLARATION__VERSION_INFO:
 			case LibraryElementPackage.ATTRIBUTE_DECLARATION__IDENTIFICATION:
 			case LibraryElementPackage.ATTRIBUTE_DECLARATION__COMPILER_INFO:
+			case LibraryElementPackage.ATTRIBUTE_DECLARATION__TYPE_ENTRY:
+				fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), false, true));
+				return;
+			case LibraryElementPackage.ATTRIBUTE_DECLARATION__ATTRIBUTES:
 				fireNotifyChanged(new ViewerNotification(notification, notification.getNotifier(), true, false));
 				return;
 			default:
@@ -256,21 +253,6 @@ public class AttributeDeclarationItemProvider extends ItemProviderAdapter implem
 	@Override
 	protected void collectNewChildDescriptors(Collection<Object> newChildDescriptors, Object object) {
 		super.collectNewChildDescriptors(newChildDescriptors, object);
-
-		newChildDescriptors.add
-			(createChildParameter
-				(LibraryElementPackage.Literals.LIBRARY_ELEMENT__VERSION_INFO,
-				 LibraryElementFactory.eINSTANCE.createVersionInfo()));
-
-		newChildDescriptors.add
-			(createChildParameter
-				(LibraryElementPackage.Literals.LIBRARY_ELEMENT__IDENTIFICATION,
-				 LibraryElementFactory.eINSTANCE.createIdentification()));
-
-		newChildDescriptors.add
-			(createChildParameter
-				(LibraryElementPackage.Literals.LIBRARY_ELEMENT__COMPILER_INFO,
-				 LibraryElementFactory.eINSTANCE.createCompilerInfo()));
 	}
 
 	/**

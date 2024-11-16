@@ -14,5 +14,10 @@ Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.debug.core,
  org.eclipse.jface,
  org.eclipse.xtext,
- org.eclipse.fordiac.ide.deployment
-Export-Package: org.eclipse.fordiac.ide.deployment.debug
+ org.eclipse.fordiac.ide.deployment,
+ org.eclipse.fordiac.ide.debug
+Export-Package: org.eclipse.fordiac.ide.deployment.debug,
+ org.eclipse.fordiac.ide.deployment.debug.breakpoint,
+ org.eclipse.fordiac.ide.deployment.debug.fb,
+ org.eclipse.fordiac.ide.deployment.debug.preferences,
+ org.eclipse.fordiac.ide.deployment.debug.watch

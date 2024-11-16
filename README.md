@@ -1,10 +1,10 @@
-#Eclipse 4diac IDE
+# Eclipse 4diac's 4diac IDE
 
-Eclipse 4diac(TM) IDE is an integrated development environment for developing distributed Industrial Process Measurement and Control Systems (IPMCS) utilizing the IEC 61499 standard. 
+[4diac IDE](https://eclipse.dev/4diac/en_ide.php) is an integrated development environment for developing distributed Industrial Process Measurement and Control Systems (IPMCS) utilizing the IEC 61499 standard. 
 
 ## License
 
-Eclipse 4diac IDE is licensed under an [EPL 2.0](LICENSE.md).
+4diac IDE is licensed under an [EPL 2.0](LICENSE.md).
 
 ## Contributing
 
@@ -16,26 +16,24 @@ the terms of [Eclipse Contributor Agreement](http://www.eclipse.org/legal/ECA.ph
 
 For building 4diac IDE simple run
 
-   mvn install
+   `mvn install`
    
-in the root directory of 4diac IDE source code. After the build completes you can finde 4diac IDE packages for Windows, Linux and MacOS in the directory:
+in the root directory of 4diac IDE source code. After the build completes you can find 4diac IDE packages for Windows, Linux and MacOS in the directory:
     
-   plugins/org.eclipse.fordiac.ide.product/target 
+   `plugins/org.eclipse.fordiac.ide.product/target` 
 
-More information on how to build, run and extend 4diac IDe can be found in our [Building 4diac IDE Documentation](https://eclipse.dev/4diac/en_help.php?helppage=html/development/building4diac.html)
-
+More information on how to build, run and extend 4diac IDE can be found in our [Building 4diac IDE Documentation](https://github.com/eclipse-4diac/4diac-documentation/blob/main/src/development/building4diac.adoc)
 
 ## Links
 
 * [Home page](https://eclipse.dev/4diac)
-* [Documentation](https://eclipse.dev/4diac/en_help.php) 
+* [Documentation](https://github.com/eclipse-4diac/4diac-documentation/blob/main/src/index.adoc) 
 * [Mailing list](https://dev.eclipse.org/mailman/listinfo/4diac-dev)
-* [Wiki](https://wiki.eclipse.org/Eclipse_4diac_Wiki)
-* [Examples](http://git.eclipse.org/c/4diac/org.eclipse.4diac.examples.git)
+* [Examples](https://github.com/eclipse-4diac/4diac-examples)
 * [4diac IDE Nightly builds](https://download.eclipse.org/4diac/updates/nightly)
 
 
 ## Issue/bug trackers
 
-* [Eclipse.org Bugzilla](https://bugs.eclipse.org/bugs/buglist.cgi?product=4diac)
+* [4diac IDE Github Issues](https://github.com/eclipse-4diac/4diac-ide/issues)
 

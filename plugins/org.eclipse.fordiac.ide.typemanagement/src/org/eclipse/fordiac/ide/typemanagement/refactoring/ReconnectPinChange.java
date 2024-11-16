@@ -14,6 +14,7 @@
 package org.eclipse.fordiac.ide.typemanagement.refactoring;
 
 import java.util.EnumSet;
+import java.util.Set;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -34,9 +35,8 @@ import org.eclipse.gef.commands.Command;
 import org.eclipse.gef.commands.CompoundCommand;
 import org.eclipse.ltk.core.refactoring.RefactoringStatus;
 
-public class ReconnectPinChange extends AbstractCommandChange<FBNetworkElement> implements IFordiacPreviewChange {
+public class ReconnectPinChange extends ConfigurableChange<FBNetworkElement> {
 
-	private final EnumSet<ChangeState> state = EnumSet.of(ChangeState.RECONNECT);
 	private final String newName;
 	private final String oldName;
 
@@ -49,23 +49,13 @@ public class ReconnectPinChange extends AbstractCommandChange<FBNetworkElement> 
 
 	@Override
 	protected Command createCommand(final FBNetworkElement element) {
-		return new ReconnectPinByName(oldName, newName, element, state);
+		return new ReconnectPinByName(oldName, newName, element, getState());
 
-	}
-
-	@Override
-	public EnumSet<ChangeState> getState() {
-		return state;
 	}
 
 	@Override
 	public EnumSet<ChangeState> getAllowedChoices() {
 		return EnumSet.of(ChangeState.RECONNECT, ChangeState.NO_CHANGE, ChangeState.DELETE);
-	}
-
-	@Override
-	public void addState(final ChangeState newState) {
-		state.add(newState);
 	}
 
 	@Override
@@ -75,7 +65,7 @@ public class ReconnectPinChange extends AbstractCommandChange<FBNetworkElement> 
 
 	@Override
 	public void initializeValidationData(final FBNetworkElement element, final IProgressMonitor pm) {
-
+		// No special initialization required
 	}
 
 	@Override
@@ -92,10 +82,10 @@ class ReconnectPinByName extends Command {
 	final String newName;
 	final FBNetworkElement element;
 	final CompoundCommand cmds = new CompoundCommand();
-	private final EnumSet<ChangeState> state;
+	private final Set<ChangeState> state;
 
 	public ReconnectPinByName(final String oldName, final String newName, final FBNetworkElement fbNeworkElement,
-			final EnumSet<ChangeState> state) {
+			final Set<ChangeState> state) {
 		this.oldName = oldName;
 		this.newName = newName;
 		this.element = fbNeworkElement;

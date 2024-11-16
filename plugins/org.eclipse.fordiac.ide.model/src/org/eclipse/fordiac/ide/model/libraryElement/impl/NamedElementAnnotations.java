@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2023 Martin Erich Jobst
+ * Copyright (c) 2023, 2024 Martin Erich Jobst
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -15,11 +15,17 @@ package org.eclipse.fordiac.ide.model.libraryElement.impl;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Spliterator;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.eclipse.emf.common.util.BasicDiagnostic;
 import org.eclipse.emf.common.util.Diagnostic;
 import org.eclipse.emf.common.util.DiagnosticChain;
+import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.impl.EObjectImpl;
 import org.eclipse.fordiac.ide.model.IdentifierVerifier;
@@ -62,18 +68,63 @@ public final class NamedElementAnnotations {
 		return s;
 	}
 
+	/**
+	 * Do not call directly! Use {@link INamedElement#findBySimpleName(String)}
+	 * instead.
+	 *
+	 * Must be accessible from derived models.
+	 */
+	public static Stream<INamedElement> findBySimpleName(final INamedElement root, final String name) {
+		return StreamSupport.stream(new NamedContentsSpliterator(root, name), false);
+	}
+
+	/**
+	 * Do not call directly! Use {@link INamedElement#findByQualifiedName(String)}
+	 * instead.
+	 *
+	 * Must be accessible from derived models.
+	 */
+	public static Stream<INamedElement> findByQualifiedName(final INamedElement root, final String qualifiedName) {
+		final int separator = qualifiedName.indexOf('.');
+		if (separator >= 0) {
+			final String head = qualifiedName.substring(0, separator);
+			final String tail = qualifiedName.substring(separator + 1);
+			return root.findBySimpleName(head).flatMap(element -> element.findByQualifiedName(tail));
+		}
+		return root.findBySimpleName(qualifiedName);
+	}
+
 	public static boolean validateName(final INamedElement element, final DiagnosticChain diagnostics,
 			final Map<Object, Object> context) {
 		if (element.getName() != null && !element.getName().isEmpty()) {
-			final Optional<String> errorMessage = IdentifierVerifier.verifyIdentifier(element.getName(), element);
-			if (errorMessage.isPresent()) {
+			if (element.getName().contains("__")) { //$NON-NLS-1$
 				if (diagnostics != null) {
-					diagnostics.add(new BasicDiagnostic(Diagnostic.ERROR, LibraryElementValidator.DIAGNOSTIC_SOURCE,
-							LibraryElementValidator.INAMED_ELEMENT__VALIDATE_NAME, errorMessage.get(),
+					diagnostics.add(new BasicDiagnostic(Diagnostic.WARNING, LibraryElementValidator.DIAGNOSTIC_SOURCE,
+							LibraryElementValidator.INAMED_ELEMENT__VALIDATE_NAME,
+							MessageFormat.format(Messages.IdentifierVerifier_NameConsecutiveUnderscore,
+									element.getName()),
+							FordiacMarkerHelper.getDiagnosticData(element,
+									LibraryElementPackage.Literals.INAMED_ELEMENT__NAME, element.getName())));
+				}
+			} else if (element.getName().endsWith("_")) { //$NON-NLS-1$
+				if (diagnostics != null) {
+					diagnostics.add(new BasicDiagnostic(Diagnostic.WARNING, LibraryElementValidator.DIAGNOSTIC_SOURCE,
+							LibraryElementValidator.INAMED_ELEMENT__VALIDATE_NAME,
+							MessageFormat.format(Messages.IdentifierVerifier_NameTrailingUnderscore, element.getName()),
 							FordiacMarkerHelper.getDiagnosticData(element,
 									LibraryElementPackage.Literals.INAMED_ELEMENT__NAME)));
 				}
-				return false;
+			} else {
+				final Optional<String> errorMessage = IdentifierVerifier.verifyIdentifier(element.getName(), element);
+				if (errorMessage.isPresent()) {
+					if (diagnostics != null) {
+						diagnostics.add(new BasicDiagnostic(Diagnostic.ERROR, LibraryElementValidator.DIAGNOSTIC_SOURCE,
+								LibraryElementValidator.INAMED_ELEMENT__VALIDATE_NAME, errorMessage.get(),
+								FordiacMarkerHelper.getDiagnosticData(element,
+										LibraryElementPackage.Literals.INAMED_ELEMENT__NAME)));
+					}
+					return false;
+				}
 			}
 		}
 		return true;
@@ -110,7 +161,8 @@ public final class NamedElementAnnotations {
 		return new BasicDiagnostic(Diagnostic.ERROR, LibraryElementValidator.DIAGNOSTIC_SOURCE,
 				LibraryElementValidator.INAMED_ELEMENT__VALIDATE_NAME,
 				MessageFormat.format(Messages.InterfaceElementAnnotations_DuplicateName, element.getName()),
-				FordiacMarkerHelper.getDiagnosticData(element, LibraryElementPackage.Literals.INAMED_ELEMENT__NAME));
+				FordiacMarkerHelper.getDiagnosticData(element, LibraryElementPackage.Literals.INAMED_ELEMENT__NAME,
+						element.getQualifiedName()));
 	}
 
 	private static <K, V> V putConditional(final Map<K, V> map, final K key, final V valueIfAbsent,
@@ -158,8 +210,59 @@ public final class NamedElementAnnotations {
 		}
 
 		@Override
+		public Stream<INamedElement> findBySimpleName(final String name) {
+			return Stream.empty();
+		}
+
+		@Override
+		public Stream<INamedElement> findByQualifiedName(final String name) {
+			return Stream.empty();
+		}
+
+		@Override
 		public boolean validateName(final DiagnosticChain diagnostics, final Map<Object, Object> context) {
 			return false;
+		}
+	}
+
+	private static class NamedContentsSpliterator implements Spliterator<INamedElement> {
+
+		private final String name;
+		private final TreeIterator<EObject> contents;
+
+		private NamedContentsSpliterator(final INamedElement root, final String name) {
+			this.name = name;
+			contents = root.eAllContents();
+		}
+
+		@Override
+		public boolean tryAdvance(final Consumer<? super INamedElement> action) {
+			while (contents.hasNext()) {
+				final EObject element = contents.next();
+				if (element instanceof final INamedElement namedElement) {
+					if (Objects.equals(namedElement.getName(), name)) {
+						action.accept(namedElement);
+						return true;
+					}
+					contents.prune();
+				}
+			}
+			return false;
+		}
+
+		@Override
+		public Spliterator<INamedElement> trySplit() {
+			return null; // cannot split
+		}
+
+		@Override
+		public long estimateSize() {
+			return Long.MAX_VALUE;
+		}
+
+		@Override
+		public int characteristics() {
+			return Spliterator.DISTINCT | Spliterator.NONNULL | Spliterator.ORDERED;
 		}
 	}
 

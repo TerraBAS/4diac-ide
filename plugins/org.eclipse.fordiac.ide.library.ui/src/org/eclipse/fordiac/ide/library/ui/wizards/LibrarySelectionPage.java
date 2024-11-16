@@ -29,7 +29,7 @@ import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.CheckboxTableViewer;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
-import org.eclipse.jface.viewers.ColumnPixelData;
+import org.eclipse.jface.viewers.ColumnWeightData;
 import org.eclipse.jface.viewers.ICheckStateProvider;
 import org.eclipse.jface.viewers.TableLayout;
 import org.eclipse.jface.viewers.TableViewerColumn;
@@ -49,8 +49,6 @@ public class LibrarySelectionPage extends WizardPage {
 	private List<LibDisplay> libraries;
 	private Map<String, List<LibDisplay>> libGroupings;
 	private CheckboxTableViewer tableViewer;
-	private Button selectAllButton;
-	private Button deselectButton;
 	private boolean showStandard;
 	private boolean showWorkspace;
 	private final boolean selectAll;
@@ -150,10 +148,9 @@ public class LibrarySelectionPage extends WizardPage {
 	private void selectAll() {
 		deselectAll();
 		final VersionComparator comparator = new VersionComparator();
-		libGroupings.forEach((symb, list) -> {
-			list.stream().max((l1, l2) -> comparator.compare(l1.getVersion(), l2.getVersion()))
-					.ifPresent(lib -> lib.setSelected(true));
-		});
+		libGroupings.forEach(
+				(symb, list) -> list.stream().max((l1, l2) -> comparator.compare(l1.getVersion(), l2.getVersion()))
+						.ifPresent(lib -> lib.setSelected(true)));
 	}
 
 	private void deselectAll() {
@@ -175,6 +172,7 @@ public class LibrarySelectionPage extends WizardPage {
 		table.setLinesVisible(true);
 		table.setLayout(createTableLayout());
 		table.setSortDirection(SWT.DOWN);
+		table.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
 		final TableViewerColumn nameColumn = new TableViewerColumn(viewer, SWT.LEAD);
 		nameColumn.getColumn().setText(Messages.LibraryPage_Name);
@@ -248,21 +246,21 @@ public class LibrarySelectionPage extends WizardPage {
 	@SuppressWarnings("static-method")
 	private TableLayout createTableLayout() {
 		final TableLayout layout = new TableLayout();
-		layout.addColumnData(new ColumnPixelData(100));
-		layout.addColumnData(new ColumnPixelData(50));
-		layout.addColumnData(new ColumnPixelData(200));
-		layout.addColumnData(new ColumnPixelData(100));
+		layout.addColumnData(new ColumnWeightData(180, 100, true));
+		layout.addColumnData(new ColumnWeightData(50, 50, true));
+		layout.addColumnData(new ColumnWeightData(150, 200, true));
+		layout.addColumnData(new ColumnWeightData(100, 100, true));
 		return layout;
 	}
 
 	private void createButtons(final Composite buttonComposite) {
 
-		selectAllButton = new Button(buttonComposite, SWT.PUSH);
+		final Button selectAllButton = new Button(buttonComposite, SWT.PUSH);
 		selectAllButton.setFont(buttonComposite.getFont());
 		selectAllButton.setText(Messages.LibraryPage_SelectAll);
 		setButtonLayoutData(selectAllButton);
 
-		deselectButton = new Button(buttonComposite, SWT.PUSH);
+		final Button deselectButton = new Button(buttonComposite, SWT.PUSH);
 		deselectButton.setFont(buttonComposite.getFont());
 		deselectButton.setText(Messages.LibraryPage_DeselectAll);
 		setButtonLayoutData(deselectButton);
@@ -303,7 +301,7 @@ public class LibrarySelectionPage extends WizardPage {
 		}
 
 		public LibDisplay(final LibraryRecord libRecord) {
-			this(false, libRecord.Name(), libRecord.symbolicName(), libRecord.version().toString(), libRecord.Comment(),
+			this(false, libRecord.name(), libRecord.symbolicName(), libRecord.version().toString(), libRecord.comment(),
 					libRecord.uri());
 		}
 

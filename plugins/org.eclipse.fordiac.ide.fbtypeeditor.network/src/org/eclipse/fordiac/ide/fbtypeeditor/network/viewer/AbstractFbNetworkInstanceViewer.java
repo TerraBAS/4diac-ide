@@ -95,12 +95,11 @@ public abstract class AbstractFbNetworkInstanceViewer extends DiagramEditor {
 		if (fbNetworkElement != null) {
 			viewer.setContents(getModel());
 		}
+		addAnnotationModelDispatcher();
 	}
 
 	@Override
-	protected void setModel(final IEditorInput input) {
-		super.setModel(input);
-
+	public void setInput(final IEditorInput input) {
 		if (input instanceof final CompositeAndSubAppInstanceViewerInput untypedInput) {
 			fbNetworkElement = untypedInput.getContent();
 			final String name = getNameHierarchy();
@@ -114,6 +113,7 @@ public abstract class AbstractFbNetworkInstanceViewer extends DiagramEditor {
 				container.eAdapters().add(fbNetworkAdapter);
 			}
 		}
+		super.setInput(input);
 	}
 
 	@Override
@@ -171,9 +171,7 @@ public abstract class AbstractFbNetworkInstanceViewer extends DiagramEditor {
 
 	@Override
 	protected ScalableFreeformRootEditPart createRootEditPart() {
-		return new FBNetworkRootEditPart(getModel(), null, // viewers don't need a palette to simplify things just set
-				// it null
-				getSite(), getActionRegistry()) {
+		return new FBNetworkRootEditPart(getModel(), getSite(), getActionRegistry()) {
 			@Override
 			protected IFigure createFigure() {
 				final IFigure viewPort = super.createFigure();

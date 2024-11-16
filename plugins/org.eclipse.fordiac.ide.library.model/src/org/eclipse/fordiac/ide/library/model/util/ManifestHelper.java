@@ -20,8 +20,8 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -30,6 +30,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.URI;
@@ -68,6 +69,9 @@ public final class ManifestHelper {
 	private static final String LIBRARY_ELEMENT = "libraryElement"; //$NON-NLS-1$
 	private static final String SYMBOLIC_NAME = "symbolicName"; //$NON-NLS-1$
 
+	// duplicated from SystemManager to avoid dependencies
+	private static final String FORDIAC_PROJECT_NATURE_ID = "org.eclipse.fordiac.ide.systemmanagement.FordiacNature"; //$NON-NLS-1$
+
 	private static LibraryFactory factory = LibraryFactory.eINSTANCE;
 	private static LibraryResourceFactoryImpl resourceFactory = new LibraryResourceFactoryImpl();
 
@@ -76,9 +80,13 @@ public final class ManifestHelper {
 	 * {@link IProject}
 	 *
 	 * @param project specified project
-	 * @return project manifest
+	 * @return project manifest or {@code null} if project is missing the Fordiac
+	 *         nature
 	 */
 	public static Manifest getOrCreateProjectManifest(final IProject project) {
+		if (!isFordiacProject(project)) {
+			return null;
+		}
 		Manifest manifest = getContainerManifest(project);
 		if (manifest == null) {
 			manifest = createProjectManifest(project, null);
@@ -93,7 +101,7 @@ public final class ManifestHelper {
 	 * @return the manifest, or {@code null} if it couldn't be loaded
 	 */
 	public static Manifest getContainerManifest(final IContainer container) {
-		if (container == null) {
+		if (container == null || (container instanceof final IProject project && !isFordiacProject(project))) {
 			return null;
 		}
 		final IFile manifest = container.getFile(new Path(MANIFEST_FILENAME));
@@ -263,12 +271,21 @@ public final class ManifestHelper {
 			manifest.setDependencies(factory.createDependencies());
 		}
 		final EList<Required> reqList = manifest.getDependencies().getRequired();
-		final Optional<Required> result = reqList.stream()
-				.filter(r -> r.getSymbolicName().equals(dependency.getSymbolicName())).findAny();
-		if (result.isPresent()) {
-			reqList.remove(result.get());
+		int index = 0;
+		while (index < reqList.size()) {
+			final int comp = reqList.get(index).getSymbolicName().compareTo(dependency.getSymbolicName());
+			if (comp == 0) {
+				reqList.set(index, dependency);
+				return true;
+			}
+			if (comp > 0) {
+				reqList.add(index, dependency);
+				return true;
+			}
+			index++;
 		}
-		return reqList.add(dependency);
+		reqList.add(index, dependency);
+		return true;
 	}
 
 	/**
@@ -300,17 +317,23 @@ public final class ManifestHelper {
 			manifest.setDependencies(factory.createDependencies());
 		}
 		final EList<Required> reqList = manifest.getDependencies().getRequired();
-		final Optional<Required> result = reqList.stream()
-				.filter(r -> r.getSymbolicName().equals(dependency.getSymbolicName())).findAny();
-		if (result.isPresent()) {
-			final VersionComparator comp = new VersionComparator();
-			if (!comp.contains(result.get().getVersion(), dependency.getVersion())) { // replace dependency
-				reqList.remove(result.get());
-				reqList.add(dependency);
+		int index = 0;
+		while (index < reqList.size()) {
+			final int comp = reqList.get(index).getSymbolicName().compareTo(dependency.getSymbolicName());
+			if (comp == 0) {
+				// replace dependency
+				if (!VersionComparator.contains(reqList.get(index).getVersion(), dependency.getVersion())) {
+					reqList.set(index, dependency);
+				}
+				return;
 			}
-		} else {
-			reqList.add(dependency);
+			if (comp > 0) {
+				reqList.add(index, dependency);
+				return;
+			}
+			index++;
 		}
+		reqList.add(index, dependency);
 	}
 
 	/**
@@ -443,6 +466,20 @@ public final class ManifestHelper {
 	}
 
 	/**
+	 * Sorts dependencies and saves the {@link Manifest}
+	 *
+	 * @param manifest specified manifest
+	 * @return {@code true} if it was saved successfully, else {@code false}
+	 */
+	public static boolean sortAndSaveManifest(final Manifest manifest) {
+		// ensure dependencies are sorted (can't use EList.sort())
+		final var dependencies = new LinkedList<>(manifest.getDependencies().getRequired());
+		manifest.getDependencies().getRequired().clear();
+		dependencies.forEach(d -> ManifestHelper.addDependency(manifest, d));
+		return saveManifest(manifest);
+	}
+
+	/**
 	 * Creates {@link Required} with given {@code symbolicName} and {@code version}
 	 *
 	 * @param symbolicName symbolic name of the dependency
@@ -454,6 +491,21 @@ public final class ManifestHelper {
 		required.setSymbolicName(symbolicName);
 		required.setVersion(version);
 		return required;
+	}
+
+	/**
+	 * Checks if given project has the Fordiac project nature
+	 *
+	 * @param project
+	 * @return {@code true} if project has the Fordiac nature, else {@code false}
+	 */
+	private static boolean isFordiacProject(final IProject project) {
+		try {
+			return project.getNature(FORDIAC_PROJECT_NATURE_ID) != null;
+		} catch (final CoreException e) {
+			// empty
+		}
+		return false;
 	}
 
 	private ManifestHelper() {

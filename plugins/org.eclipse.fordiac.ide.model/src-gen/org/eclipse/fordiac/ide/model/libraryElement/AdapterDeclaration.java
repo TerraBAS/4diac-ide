@@ -16,6 +16,8 @@
  */
 package org.eclipse.fordiac.ide.model.libraryElement;
 
+import java.util.stream.Stream;
+
 /**
  * <!-- begin-user-doc -->
  * A representation of the model object '<em><b>Adapter Declaration</b></em>'.
@@ -26,7 +28,7 @@ package org.eclipse.fordiac.ide.model.libraryElement;
  * </p>
  * <ul>
  *   <li>{@link org.eclipse.fordiac.ide.model.libraryElement.AdapterDeclaration#getAdapterFB <em>Adapter FB</em>}</li>
- *   <li>{@link org.eclipse.fordiac.ide.model.libraryElement.AdapterDeclaration#getAdapterNetworkFB <em>Adapter Network FB</em>}</li>
+ *   <li>{@link org.eclipse.fordiac.ide.model.libraryElement.AdapterDeclaration#getInterfaceOnlyAdapterFB <em>Interface Only Adapter FB</em>}</li>
  * </ul>
  *
  * @see org.eclipse.fordiac.ide.model.libraryElement.LibraryElementPackage#getAdapterDeclaration()
@@ -35,48 +37,48 @@ package org.eclipse.fordiac.ide.model.libraryElement;
  */
 public interface AdapterDeclaration extends IInterfaceElement {
 	/**
-	 * Returns the value of the '<em><b>Adapter FB</b></em>' containment reference.
+	 * Returns the value of the '<em><b>Adapter FB</b></em>' reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Adapter FB</em>' containment reference.
+	 * @return the value of the '<em>Adapter FB</em>' reference.
 	 * @see #setAdapterFB(AdapterFB)
 	 * @see org.eclipse.fordiac.ide.model.libraryElement.LibraryElementPackage#getAdapterDeclaration_AdapterFB()
-	 * @model containment="true" resolveProxies="true"
+	 * @model
 	 * @generated
 	 */
 	AdapterFB getAdapterFB();
 
 	/**
-	 * Sets the value of the '{@link org.eclipse.fordiac.ide.model.libraryElement.AdapterDeclaration#getAdapterFB <em>Adapter FB</em>}' containment reference.
+	 * Sets the value of the '{@link org.eclipse.fordiac.ide.model.libraryElement.AdapterDeclaration#getAdapterFB <em>Adapter FB</em>}' reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Adapter FB</em>' containment reference.
+	 * @param value the new value of the '<em>Adapter FB</em>' reference.
 	 * @see #getAdapterFB()
 	 * @generated
 	 */
 	void setAdapterFB(AdapterFB value);
 
 	/**
-	 * Returns the value of the '<em><b>Adapter Network FB</b></em>' reference.
+	 * Returns the value of the '<em><b>Interface Only Adapter FB</b></em>' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Adapter Network FB</em>' reference.
-	 * @see #setAdapterNetworkFB(AdapterFB)
-	 * @see org.eclipse.fordiac.ide.model.libraryElement.LibraryElementPackage#getAdapterDeclaration_AdapterNetworkFB()
-	 * @model
+	 * @return the value of the '<em>Interface Only Adapter FB</em>' containment reference.
+	 * @see #setInterfaceOnlyAdapterFB(AdapterFB)
+	 * @see org.eclipse.fordiac.ide.model.libraryElement.LibraryElementPackage#getAdapterDeclaration_InterfaceOnlyAdapterFB()
+	 * @model containment="true" resolveProxies="true"
 	 * @generated
 	 */
-	AdapterFB getAdapterNetworkFB();
+	AdapterFB getInterfaceOnlyAdapterFB();
 
 	/**
-	 * Sets the value of the '{@link org.eclipse.fordiac.ide.model.libraryElement.AdapterDeclaration#getAdapterNetworkFB <em>Adapter Network FB</em>}' reference.
+	 * Sets the value of the '{@link org.eclipse.fordiac.ide.model.libraryElement.AdapterDeclaration#getInterfaceOnlyAdapterFB <em>Interface Only Adapter FB</em>}' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Adapter Network FB</em>' reference.
-	 * @see #getAdapterNetworkFB()
+	 * @param value the new value of the '<em>Interface Only Adapter FB</em>' containment reference.
+	 * @see #getInterfaceOnlyAdapterFB()
 	 * @generated
 	 */
-	void setAdapterNetworkFB(AdapterFB value);
+	void setInterfaceOnlyAdapterFB(AdapterFB value);
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -85,5 +87,13 @@ public interface AdapterDeclaration extends IInterfaceElement {
 	 * @generated
 	 */
 	AdapterType getType();
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @model dataType="org.eclipse.fordiac.ide.model.libraryElement.NamedElementStream"
+	 * @generated
+	 */
+	Stream<INamedElement> findBySimpleName(String name);
 
 } // AdapterDeclaration

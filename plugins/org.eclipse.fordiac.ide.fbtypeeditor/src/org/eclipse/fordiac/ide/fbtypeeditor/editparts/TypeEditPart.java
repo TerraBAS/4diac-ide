@@ -23,7 +23,6 @@ import org.eclipse.draw2d.IFigure;
 import org.eclipse.draw2d.Label;
 import org.eclipse.emf.common.notify.Adapter;
 import org.eclipse.emf.common.notify.Notification;
-import org.eclipse.emf.common.notify.impl.AdapterImpl;
 import org.eclipse.fordiac.ide.gef.annotation.AnnotableGraphicalEditPart;
 import org.eclipse.fordiac.ide.gef.annotation.FordiacAnnotationUtil;
 import org.eclipse.fordiac.ide.gef.annotation.GraphicalAnnotationModelEvent;
@@ -38,11 +37,15 @@ import org.eclipse.fordiac.ide.gef.listeners.IFontUpdateListener;
 import org.eclipse.fordiac.ide.gef.policies.ModifiedNonResizeableEditPolicy;
 import org.eclipse.fordiac.ide.model.commands.change.ChangeDataTypeCommand;
 import org.eclipse.fordiac.ide.model.data.DataType;
+import org.eclipse.fordiac.ide.model.data.EventType;
+import org.eclipse.fordiac.ide.model.emf.SingleRecursiveContentAdapter;
 import org.eclipse.fordiac.ide.model.libraryElement.AdapterDeclaration;
+import org.eclipse.fordiac.ide.model.libraryElement.Event;
 import org.eclipse.fordiac.ide.model.libraryElement.IInterfaceElement;
 import org.eclipse.fordiac.ide.model.libraryElement.INamedElement;
 import org.eclipse.fordiac.ide.model.libraryElement.VarDeclaration;
 import org.eclipse.fordiac.ide.model.libraryElement.impl.ErrorMarkerDataTypeImpl;
+import org.eclipse.fordiac.ide.model.typelibrary.EventTypeLibrary;
 import org.eclipse.fordiac.ide.model.typelibrary.TypeEntry;
 import org.eclipse.fordiac.ide.model.typelibrary.TypeLibrary;
 import org.eclipse.fordiac.ide.ui.preferences.PreferenceConstants;
@@ -82,7 +85,7 @@ public class TypeEditPart extends AbstractInterfaceElementEditPart implements An
 
 	@Override
 	protected Adapter createAdapter() {
-		return new AdapterImpl() {
+		return new SingleRecursiveContentAdapter() {
 			@Override
 			public void notifyChanged(final Notification notification) {
 				super.notifyChanged(notification);
@@ -225,7 +228,10 @@ public class TypeEditPart extends AbstractInterfaceElementEditPart implements An
 		final DirectEditManager editManager = createDirectEditManager();
 		if (editManager instanceof final ComboDirectEditManager comboEditManager) {
 			final List<String> dataTypeNames;
-			if (getCastedModel() instanceof AdapterDeclaration) {
+			if (getCastedModel() instanceof Event) {
+				dataTypeNames = EventTypeLibrary.getInstance().getEventTypes().stream().map(EventType::getName)
+						.toList();
+			} else if (getCastedModel() instanceof AdapterDeclaration) {
 				dataTypeNames = typeLib.getAdapterTypesSorted().stream().map(TypeEntry::getTypeName).toList();
 			} else {
 				dataTypeNames = typeLib.getDataTypeLibrary().getDataTypesSorted().stream().map(DataType::getName)
@@ -245,13 +251,6 @@ public class TypeEditPart extends AbstractInterfaceElementEditPart implements An
 	@Override
 	public INamedElement getINamedElement() {
 		return getCastedModel();
-	}
-
-	@Override
-	public boolean isDirectEditable() {
-		// allow direct edit only for VarDeclarations and AdapterDeclarations
-		return super.isDirectEditable()
-				&& (getCastedModel() instanceof VarDeclaration || getCastedModel() instanceof AdapterDeclaration);
 	}
 
 	@Override

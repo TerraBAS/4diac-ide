@@ -1,6 +1,6 @@
 /*******************************************************************************
- * Copyright (c) 2011 - 2017 Profactor GmbH, TU Wien ACIN, fortiss GmbH
- * 				 2019 Johannes Kepler University
+ * Copyright (c) 2011 - 2024 Profactor GmbH, TU Wien ACIN, fortiss GmbH,
+ * 				             Johannes Kepler University Linz
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -29,13 +29,13 @@ import org.eclipse.fordiac.ide.gef.DiagramEditorWithFlyoutPalette;
 import org.eclipse.fordiac.ide.gef.editparts.ZoomScalableFreeformRootEditPart;
 import org.eclipse.fordiac.ide.gef.figures.AbstractFreeformFigure;
 import org.eclipse.fordiac.ide.gef.figures.MinSpaceFreeformFigure;
+import org.eclipse.fordiac.ide.model.libraryElement.AdapterType;
 import org.eclipse.fordiac.ide.model.libraryElement.AutomationSystem;
 import org.eclipse.fordiac.ide.model.libraryElement.FBType;
 import org.eclipse.fordiac.ide.model.libraryElement.InterfaceList;
 import org.eclipse.fordiac.ide.model.libraryElement.SubAppType;
 import org.eclipse.fordiac.ide.model.typelibrary.TypeLibrary;
-import org.eclipse.fordiac.ide.typemanagement.FBTypeEditorInput;
-import org.eclipse.fordiac.ide.ui.FordiacLogHelper;
+import org.eclipse.fordiac.ide.typeeditor.TypeEditorInput;
 import org.eclipse.fordiac.ide.ui.FordiacMessages;
 import org.eclipse.fordiac.ide.ui.imageprovider.FordiacImage;
 import org.eclipse.gef.ContextMenuProvider;
@@ -59,20 +59,18 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorSite;
 import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.views.contentoutline.IContentOutlinePage;
 
 public class FBInterfaceEditor extends DiagramEditorWithFlyoutPalette implements IFBTEditorPart {
 
 	private CommandStack commandStack;
-	private FBType fbType;
 
 	private PaletteRoot paletteRoot;
 	private TypeLibrary typeLib;
 
 	@Override
 	public void init(final IEditorSite site, final IEditorInput input) throws PartInitException {
-		setInput(input);
-		if (input instanceof final FBTypeEditorInput untypedInput) {
-			fbType = untypedInput.getContent();
+		if (input instanceof final TypeEditorInput untypedInput) {
 			typeLib = untypedInput.getTypeEntry().getTypeLibrary();
 		}
 		super.init(site, input);
@@ -100,18 +98,21 @@ public class FBInterfaceEditor extends DiagramEditorWithFlyoutPalette implements
 	@Override
 	protected PaletteRoot getPaletteRoot() {
 		if (null == paletteRoot) {
-			paletteRoot = FBInterfacePaletteFactory.createPalette(typeLib);
+			paletteRoot = FBInterfacePaletteFactory.createPalette(typeLib, !(getType() instanceof AdapterType));
 		}
 		return paletteRoot;
 	}
 
 	@Override
 	public <T> T getAdapter(final Class<T> type) {
+		if (type == IContentOutlinePage.class) {
+			return null; // use outline page from FBTypeEditor
+		}
 		if (type == InterfaceList.class) {
 			return type.cast(getModel().getInterfaceList());
 		}
 		if (type == SubAppType.class) {
-			return fbType instanceof SubAppType ? type.cast(fbType) : null;
+			return getType() instanceof final SubAppType subApp ? type.cast(subApp) : null;
 		}
 		return super.getAdapter(type);
 	}
@@ -127,9 +128,9 @@ public class FBInterfaceEditor extends DiagramEditorWithFlyoutPalette implements
 
 	@Override
 	public boolean outlineSelectionChanged(final Object selectedElement) {
-		final Object editpart = getGraphicalViewer().getEditPartRegistry().get(selectedElement);
+		final EditPart ep = getGraphicalViewer().getEditPartForModel(selectedElement);
 		getGraphicalViewer().flush();
-		if (editpart instanceof final EditPart ep && ep.isSelectable()) {
+		if (ep != null && ep.isSelectable()) {
 			getGraphicalViewer().select(ep);
 			return true;
 		}
@@ -163,7 +164,7 @@ public class FBInterfaceEditor extends DiagramEditorWithFlyoutPalette implements
 
 	@Override
 	public FBType getModel() {
-		return fbType;
+		return getType();
 	}
 
 	@Override
@@ -200,15 +201,8 @@ public class FBInterfaceEditor extends DiagramEditorWithFlyoutPalette implements
 	}
 
 	@Override
-	public void reloadType(final FBType type) {
-		fbType = type;
-		try {
-			init(getEditorSite(), new FBTypeEditorInput(type, type.getTypeEntry()));
-		} catch (final PartInitException e) {
-			FordiacLogHelper.logError(PROPERTY_CONTRIBUTOR_ID, e);
-		}
-		getGraphicalViewer().setContents(fbType);
-
+	public void reloadType() {
+		getGraphicalViewer().setContents(getType());
 	}
 
 	@Override
@@ -250,11 +244,11 @@ public class FBInterfaceEditor extends DiagramEditorWithFlyoutPalette implements
 	}
 
 	@Override
-	public Object getSelectableEditPart() {
+	public Object getSelectableObject() {
 		if (getGraphicalViewer() == null) {
 			return null;
 		}
-		return getGraphicalViewer().getEditPartRegistry().get(fbType);
+		return getGraphicalViewer().getEditPartForModel(getType());
 	}
 
 }

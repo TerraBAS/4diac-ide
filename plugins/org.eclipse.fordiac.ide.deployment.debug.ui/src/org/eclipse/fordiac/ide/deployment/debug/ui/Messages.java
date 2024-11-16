@@ -16,15 +16,46 @@ import org.eclipse.osgi.util.NLS;
 
 @SuppressWarnings("squid:S3008") // tell sonar the java naming convention does not make sense for this class
 public class Messages extends NLS {
-	private static final String BUNDLE_NAME = Messages.class.getPackageName() + ".messages"; //$NON-NLS-1$
+	private static final String BUNDLE_NAME = "org.eclipse.fordiac.ide.deployment.debug.ui.messages"; //$NON-NLS-1$
 	public static String AbstractDeploymentCommand_ExtendedDeploymentErrorMessage;
 	public static String AbstractDeploymentCommand_SimpleDeploymentErrorMessage;
+	public static String AbstractDeploymentHandler_ElementNotInResource;
+	public static String AbstractDeploymentHandler_ElementNotInSystem;
+	public static String AbstractDeploymentHandler_LaunchDialogMessage;
+	public static String AbstractDeploymentHandler_LaunchDialogTitle;
+	public static String AbstractDeploymentHandler_NoFileForSystem;
+	public static String AbstractDeploymentHandler_NoInteractorForDevice;
 	public static String AbstractDeviceDeploymentCommand_DeviceName;
 	public static String AbstractOnlineFBHandler_FunctionBlock;
 	public static String CleanDeviceHandler_CleanDeviceError;
 	public static String DeleteResourceHandler_DeleteResourceError;
 	public static String DeleteResourceHandler_Resource;
+	public static String DeploymentDebugModelPresentation_Disconnected;
+	public static String DeploymentDebugModelPresentation_Terminated;
+	public static String DeploymentLaunchConfigurationTab_AllowTerminateLabel;
+	public static String DeploymentLaunchConfigurationTab_BrowseLabel;
+	public static String DeploymentLaunchConfigurationTab_InvalidPollingIntervalError;
+	public static String DeploymentLaunchConfigurationTab_Name;
+	public static String DeploymentLaunchConfigurationTab_NegativePollingIntervalError;
+	public static String DeploymentLaunchConfigurationTab_OptionsLabel;
+	public static String DeploymentLaunchConfigurationTab_PollingIntervalLabel;
+	public static String DeploymentLaunchConfigurationTab_PollingIntervalMessage;
+	public static String DeploymentLaunchConfigurationTab_PollingIntervalUnitLabel;
+	public static String DeploymentLaunchConfigurationTab_SelectionLabel;
+	public static String DeploymentLaunchConfigurationTab_SystemLabel;
+	public static String DeploymentLaunchConfigurationTab_SystemMessage;
+	public static String DeploymentDebugModelPresentation_WatchpointText;
+	public static String DeploymentDebugPreferencePage_Description;
+	public static String DeploymentDebugPreferencePage_MonitoringValueTransparency;
+	public static String DeploymentDebugPreferencePage_MonitoringValueWriteThrough;
+	public static String DeploymentWatchpointDetailPane_Description;
+	public static String DeploymentWatchpointDetailPane_Name;
+	public static String DeploymentWatchpointForceEditor_ForceLabel;
+	public static String ForceHandler_ForceDialogInput;
+	public static String ForceHandler_ForceDialogTitle;
 	public static String KillDeviceHandler_KillDeviceError;
+	public static String LaunchActiveStatusHandler_LaunchActiveMessage;
+	public static String LaunchActiveStatusHandler_LaunchActiveTitle;
 	public static String OnlineCreateConnectionHandler_CreateConnectionError;
 	public static String OnlineCreateFBHandler_OnlineCreateFunctionBlockError;
 	public static String OnlineStartFBHandler_OnlineStartFunctionBlockError;

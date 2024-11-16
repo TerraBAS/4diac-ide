@@ -14,34 +14,28 @@
 package org.eclipse.fordiac.ide.application.handlers;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.fordiac.ide.application.Messages;
 import org.eclipse.fordiac.ide.application.editparts.AbstractStructManipulatorEditPart;
 import org.eclipse.fordiac.ide.model.commands.change.TransferInstanceCommentsCommand;
 import org.eclipse.fordiac.ide.model.helpers.FBEndpointFinder;
-import org.eclipse.fordiac.ide.model.libraryElement.AutomationSystem;
 import org.eclipse.fordiac.ide.model.libraryElement.Connection;
 import org.eclipse.fordiac.ide.model.libraryElement.FBNetworkElement;
 import org.eclipse.fordiac.ide.model.libraryElement.IInterfaceElement;
 import org.eclipse.fordiac.ide.model.libraryElement.INamedElement;
 import org.eclipse.fordiac.ide.model.libraryElement.StructManipulator;
 import org.eclipse.fordiac.ide.model.libraryElement.SubApp;
-import org.eclipse.fordiac.ide.model.libraryElement.SubAppType;
 import org.eclipse.fordiac.ide.model.search.dialog.FBTypeUpdateDialog;
 import org.eclipse.fordiac.ide.model.search.dialog.StructuredDataTypeDataHandler;
-import org.eclipse.fordiac.ide.model.search.types.StructManipulatorSearch;
+import org.eclipse.fordiac.ide.model.search.types.DataTypeInstanceSearch;
 import org.eclipse.fordiac.ide.model.typelibrary.DataTypeEntry;
 import org.eclipse.gef.commands.CommandStack;
-import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Button;
@@ -62,39 +56,32 @@ public class TransferInstanceCommentsHandler extends AbstractHandler {
 		final String[] labels = { Messages.TransferInstanceComments_TransferLabel, SWT.getMessage("SWT_Cancel") }; //$NON-NLS-1$
 
 		final FBTypeUpdateDialog<DataTypeEntry> structUpdateDialog = new FBTypeUpdateDialog<>(null,
-				Messages.TransferInstanceComments_WizardTitle, null, "", MessageDialog.NONE, labels,
-				DEFAULT_BUTTON_INDEX,
+				Messages.TransferInstanceComments_WizardTitle, "", labels, DEFAULT_BUTTON_INDEX, //$NON-NLS-1$
 				new StructuredDataTypeDataHandler((DataTypeEntry) struct.getModel().getDataType().getTypeEntry()) {
 					@Override
-					public final Set<INamedElement> performStructSearch() {
-						final StructManipulatorSearch structSearch = new StructManipulatorSearch(typeEntry);
+					public final List<? extends EObject> performStructSearch() {
 
-						Set<INamedElement> elements = Collections.emptySet();
+						final DataTypeInstanceSearch search = new DataTypeInstanceSearch(typeEntry);
 
-						final EObject root = EcoreUtil.getRootContainer(struct.getModel());
-						if (root instanceof final AutomationSystem sys) {
-							elements = structSearch.performApplicationSearch(sys);
-						} else if (root instanceof final SubAppType subAppType) {
-							elements = structSearch.performFBNetworkSearch(subAppType.getFBNetwork());
-						}
-						elements.removeIf(el -> el.equals(struct.getModel()) || isTypedOrContainedInTypedInstance(el));
+						final List<? extends EObject> result = search.performSearch();
+
+						result.removeIf(el -> el.equals(struct.getModel())
+								|| isTypedOrContainedInTypedInstance((INamedElement) el));
 
 						// output connected elements only searchFilter
 						if (outputConnectedOnlyBtn != null && !outputConnectedOnlyBtn.isDisposed()
 								&& outputConnectedOnlyBtn.getSelection()) {
 							final List<FBNetworkElement> connectedFbs = FBEndpointFinder
 									.getConnectedFbs(new ArrayList<>(), selectedItem);
-							elements.removeIf(res -> (res instanceof final StructManipulator structMan
+							result.removeIf(res -> (res instanceof final StructManipulator structMan
 									&& (!structMan.getInterface().getEventInputs().isEmpty()
 											|| !structMan.getInterface().getInputVars().isEmpty())
 									&& !connectedFbs.contains(res)));
 
 						}
-						return elements;
+						return result;
 					}
-				}) {
-
-		};
+				});
 
 		final IEditorPart editor = HandlerUtil.getActiveEditor(event);
 		final CommandStack commandStack = editor.getAdapter(CommandStack.class);

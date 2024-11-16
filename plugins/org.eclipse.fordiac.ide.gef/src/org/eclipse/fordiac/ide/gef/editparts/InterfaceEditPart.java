@@ -1,6 +1,6 @@
 /*******************************************************************************
- * Copyright (c) 2008, 2021 Profactor GbmH, TU Wien ACIN, fortiss GmbH,
- *                          Johannes Kepler University,
+ * Copyright (c) 2008, 2024 Profactor GbmH, TU Wien ACIN, fortiss GmbH,
+ *                          Johannes Kepler University Linz,
  *                          Primetals Technologies Austria GmbH
  *
  * This program and the accompanying materials are made available under the
@@ -73,6 +73,7 @@ import org.eclipse.gef.editpolicies.GraphicalNodeEditPolicy;
 import org.eclipse.gef.editpolicies.LayoutEditPolicy;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.util.IPropertyChangeListener;
+import org.eclipse.swt.widgets.Display;
 
 public abstract class InterfaceEditPart extends AbstractConnectableEditPart
 		implements NodeEditPart, IDeactivatableConnectionHandleRoleEditPart, AnnotableGraphicalEditPart {
@@ -370,6 +371,14 @@ public abstract class InterfaceEditPart extends AbstractConnectableEditPart
 	}
 
 	@Override
+	public <T> T getAdapter(final Class<T> key) {
+		if (key == IInterfaceElement.class) {
+			return key.cast(getModel());
+		}
+		return super.getAdapter(key);
+	}
+
+	@Override
 	public IInterfaceElement getModel() {
 		return (IInterfaceElement) super.getModel();
 	}
@@ -412,7 +421,7 @@ public abstract class InterfaceEditPart extends AbstractConnectableEditPart
 						|| LibraryElementPackage.eINSTANCE.getIInterfaceElement_OutputConnections().equals(feature)
 						|| LibraryElementPackage.eINSTANCE.getINamedElement_Name().equals(feature)
 						|| LibraryElementPackage.eINSTANCE.getINamedElement_Comment().equals(feature)) {
-					refresh();
+					Display.getDefault().execute(() -> refresh());
 				}
 				super.notifyChanged(notification);
 			}
@@ -519,11 +528,8 @@ public abstract class InterfaceEditPart extends AbstractConnectableEditPart
 
 	public ValueEditPart getReferencedValueEditPart() {
 		final Value value = getValue();
-		if (value != null) {
-			final Object temp = getViewer().getEditPartRegistry().get(value);
-			if (temp instanceof final ValueEditPart vep) {
-				return vep;
-			}
+		if ((value != null) && (getViewer().getEditPartForModel(value) instanceof final ValueEditPart vep)) {
+			return vep;
 		}
 		return null;
 	}

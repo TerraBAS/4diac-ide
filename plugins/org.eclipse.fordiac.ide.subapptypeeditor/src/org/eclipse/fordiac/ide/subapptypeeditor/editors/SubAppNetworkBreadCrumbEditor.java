@@ -28,8 +28,7 @@ import org.eclipse.fordiac.ide.model.libraryElement.CFBInstance;
 import org.eclipse.fordiac.ide.model.libraryElement.FB;
 import org.eclipse.fordiac.ide.model.libraryElement.FBNetwork;
 import org.eclipse.fordiac.ide.model.libraryElement.FBNetworkElement;
-import org.eclipse.fordiac.ide.model.libraryElement.FBType;
-import org.eclipse.fordiac.ide.model.libraryElement.MemberVarDeclaration;
+import org.eclipse.fordiac.ide.model.libraryElement.LibraryElement;
 import org.eclipse.fordiac.ide.model.libraryElement.SubApp;
 import org.eclipse.fordiac.ide.model.libraryElement.SubAppType;
 import org.eclipse.fordiac.ide.model.libraryElement.VarDeclaration;
@@ -37,7 +36,7 @@ import org.eclipse.fordiac.ide.model.ui.editors.AbstractBreadCrumbEditor;
 import org.eclipse.fordiac.ide.model.ui.editors.HandlerHelper;
 import org.eclipse.fordiac.ide.subapptypeeditor.providers.TypedSubappProviderAdapterFactory;
 import org.eclipse.fordiac.ide.subapptypeeditor.viewer.SubappInstanceViewer;
-import org.eclipse.fordiac.ide.typemanagement.FBTypeEditorInput;
+import org.eclipse.fordiac.ide.typeeditor.TypeEditorInput;
 import org.eclipse.fordiac.ide.typemanagement.navigator.FBTypeLabelProvider;
 import org.eclipse.fordiac.ide.ui.FordiacLogHelper;
 import org.eclipse.fordiac.ide.ui.editors.EditorUtils;
@@ -51,6 +50,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorSite;
+import org.eclipse.ui.IReusableEditor;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.part.EditorPart;
@@ -59,19 +59,20 @@ import org.eclipse.ui.part.MultiPageEditorSite;
 public class SubAppNetworkBreadCrumbEditor extends AbstractBreadCrumbEditor implements IFBTEditorPart {
 
 	private CommandStack commandStack;
+	private MultiPageEditorSite multiPageEditorSite;
 
 	private GraphicalAnnotationModel annotationModel;
 
 	@Override
 	public void init(final IEditorSite site, final IEditorInput input) throws PartInitException {
-		if (!(input instanceof FBTypeEditorInput)) {
-			throw new IllegalArgumentException("SubAppNetworkBreadCrumbEditor is only suitable for FBTypeEditorInputs"); //$NON-NLS-1$
+		if (!(input instanceof TypeEditorInput)) {
+			throw new IllegalArgumentException("SubAppNetworkBreadCrumbEditor is only suitable for TypeEditorInputs"); //$NON-NLS-1$
 		}
 
 		IEditorSite siteToUse = site;
 		ISelectionProvider selProvider = null;
 		if (siteToUse instanceof final MultiPageEditorSite multiPageEditorSite) {
-			annotationModel = multiPageEditorSite.getMultiPageEditor().getAdapter(GraphicalAnnotationModel.class);
+			this.multiPageEditorSite = multiPageEditorSite;
 			siteToUse = (IEditorSite) multiPageEditorSite.getMultiPageEditor().getSite();
 			selProvider = siteToUse.getSelectionProvider();
 		}
@@ -88,12 +89,13 @@ public class SubAppNetworkBreadCrumbEditor extends AbstractBreadCrumbEditor impl
 	}
 
 	@Override
-	public FBTypeEditorInput getEditorInput() {
-		return (FBTypeEditorInput) super.getEditorInput();
+	public TypeEditorInput getEditorInput() {
+		return (TypeEditorInput) super.getEditorInput();
 	}
 
-	private SubAppType getSubAppType() {
-		return (SubAppType) getEditorInput().getContent();
+	@Override
+	public SubAppType getType() {
+		return (SubAppType) IFBTEditorPart.super.getType();
 	}
 
 	@Override
@@ -109,7 +111,7 @@ public class SubAppNetworkBreadCrumbEditor extends AbstractBreadCrumbEditor impl
 			final TypedSubAppNetworkEditor initialEditor = new TypedSubAppNetworkEditor();
 			initialEditor.setCommonCommandStack(getCommandStack());
 			final int pagenum = addPage(initialEditor, getEditorInput());
-			getModelToEditorNumMapping().put(getSubAppType(), Integer.valueOf(pagenum)); // need to use the file as
+			getModelToEditorNumMapping().put(getType(), Integer.valueOf(pagenum)); // need to use the file as
 			// reference as this is
 			// provided by the content
 			// providers
@@ -165,7 +167,7 @@ public class SubAppNetworkBreadCrumbEditor extends AbstractBreadCrumbEditor impl
 	@Override
 	protected Object getInitialModel(final String itemPath) {
 		// FIXME implement path analysis for typed subapps
-		return getSubAppType();
+		return getType();
 	}
 
 	@Override
@@ -201,8 +203,7 @@ public class SubAppNetworkBreadCrumbEditor extends AbstractBreadCrumbEditor impl
 
 	@Override
 	public boolean outlineSelectionChanged(Object selectedElement) {
-		if ((selectedElement instanceof final EObject eObj)
-				&& (EcoreUtil.isAncestor(getSubAppType().getFBNetwork(), eObj))) {
+		if ((selectedElement instanceof final EObject eObj) && (EcoreUtil.isAncestor(getType().getFBNetwork(), eObj))) {
 			// an selected element is only valid if it is a child of the FBNetwork of the
 			// subapp or the fbnetwork
 			if (selectedElement instanceof final FBNetwork fbn) {
@@ -244,14 +245,23 @@ public class SubAppNetworkBreadCrumbEditor extends AbstractBreadCrumbEditor impl
 	}
 
 	@Override
-	public void reloadType(final FBType type) {
-		if (type instanceof final SubAppType subAppType) {
+	public void setInput(final IEditorInput input) {
+		if (multiPageEditorSite != null) {
+			annotationModel = multiPageEditorSite.getMultiPageEditor().getAdapter(GraphicalAnnotationModel.class);
+		}
+		pages.stream().filter(IReusableEditor.class::isInstance).map(IReusableEditor.class::cast)
+				.forEach(e -> e.setInput(input));
+		super.setInputWithNotify(input);
+	}
+
+	@Override
+	public void reloadType() {
+		if (getType() instanceof final SubAppType subAppType) {
 			final String path = getBreadcrumb().serializePath();
-			getEditorInput().setFbType(type);
 			removePage(getActivePage());
 			createPages();
 			if (!getBreadcrumb().openPath(path, subAppType)) {
-				getBreadcrumb().setInput(type);
+				getBreadcrumb().setInput(subAppType);
 				showReloadErrorMessage(path, "Showing subapp root.");
 			}
 		} else {
@@ -261,7 +271,7 @@ public class SubAppNetworkBreadCrumbEditor extends AbstractBreadCrumbEditor impl
 	}
 
 	@Override
-	public Object getSelectableEditPart() {
+	public Object getSelectableObject() {
 		final GraphicalViewer viewer = getAdapter(GraphicalViewer.class);
 		return viewer.getRootEditPart();
 	}
@@ -270,6 +280,9 @@ public class SubAppNetworkBreadCrumbEditor extends AbstractBreadCrumbEditor impl
 	public <T> T getAdapter(final Class<T> adapter) {
 		if (adapter == GraphicalAnnotationModel.class) {
 			return adapter.cast(annotationModel);
+		}
+		if (adapter == LibraryElement.class) {
+			return adapter.cast(getType());
 		}
 		return super.getAdapter(adapter);
 	}

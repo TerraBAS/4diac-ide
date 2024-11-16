@@ -46,6 +46,7 @@ import org.eclipse.swt.widgets.ToolBar;
 
 public class BreadcrumbWidget implements ISelectionProvider {
 
+	private static final String SEPARATOR = "/"; //$NON-NLS-1$
 	private AdapterFactoryContentProvider contentProvider;
 	private AdapterFactoryLabelProvider labelProvider;
 
@@ -60,6 +61,10 @@ public class BreadcrumbWidget implements ISelectionProvider {
 	}
 
 	public void setInput(final Object input) {
+		setInput(input, new SelectionChangedEvent(this, new StructuredSelection(input)));
+	}
+
+	public void setInput(final Object input, final SelectionChangedEvent event) {
 		if (!items.isEmpty() && getActiveItem().getModel().equals(input)) {
 			return;
 		}
@@ -72,8 +77,12 @@ public class BreadcrumbWidget implements ISelectionProvider {
 			toolbar.pack();
 		}
 
-		final SelectionChangedEvent changeEvent = new SelectionChangedEvent(this, new StructuredSelection(input));
-		fireSelectionChanged(changeEvent);
+		// when calling setInput with null, no editor input will be provided
+		// sometimes needed when changing the content of the breadcrumb without needing
+		// an editor update
+		if (event != null) {
+			fireSelectionChanged(event);
+		}
 	}
 
 	private void createBreadcrumbItems(final Object input) {
@@ -122,9 +131,7 @@ public class BreadcrumbWidget implements ISelectionProvider {
 	}
 
 	public String serializePath() {
-		return items.stream()
-				.map(item -> "/" + item.getText())
-				.collect(Collectors.joining());
+		return items.stream().map(item -> SEPARATOR + item.getText()).collect(Collectors.joining());
 	}
 
 	public boolean openPath(final String path, final AutomationSystem system) {
@@ -135,12 +142,12 @@ public class BreadcrumbWidget implements ISelectionProvider {
 		return validateAndOpenPath(path, type);
 	}
 
-	private boolean validateAndOpenPath(final String path, final INamedElement parent) {
+	public boolean validateAndOpenPath(final String path, final INamedElement parent) {
 		if (path.isBlank()) {
 			return false;
 		}
 
-		final String[] tokens = path.substring(1).split("/"); // remove first "/" and split
+		final String[] tokens = path.substring(1).split(SEPARATOR); // remove first "/" and split
 
 		if (tokens.length == 0) {
 			return false;
@@ -158,7 +165,9 @@ public class BreadcrumbWidget implements ISelectionProvider {
 					return false;
 				}
 				if (i == tokens.length - 1) {
-					setInput(child); // last token, therefore we are at our destination
+					if (getActiveItem().getModel() != child) {
+						setInput(child); // last token, therefore we are at our destination
+					}
 					return true;
 				}
 				current = child;
@@ -216,8 +225,8 @@ public class BreadcrumbWidget implements ISelectionProvider {
 
 	@Override
 	public void setSelection(final ISelection selection) {
-		if (!selection.isEmpty() && selection instanceof StructuredSelection) {
-			setInput(((StructuredSelection) selection).getFirstElement());
+		if (!selection.isEmpty() && selection instanceof final StructuredSelection structSel) {
+			setInput(structSel.getFirstElement());
 		}
 	}
 

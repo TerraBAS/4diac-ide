@@ -29,6 +29,7 @@ import java.io.OutputStream;
 import javax.xml.stream.XMLStreamException;
 
 import org.eclipse.fordiac.ide.model.LibraryElementTags;
+import org.eclipse.fordiac.ide.model.datatype.helper.IecTypes;
 import org.eclipse.fordiac.ide.model.libraryElement.CompilerInfo;
 import org.eclipse.fordiac.ide.model.libraryElement.Import;
 import org.eclipse.fordiac.ide.model.libraryElement.LibraryElement;
@@ -193,7 +194,8 @@ public abstract class AbstractTypeExporter extends CommonElementExporter {
 	 * @throws XMLStreamException
 	 */
 	protected void addVarDeclaration(final VarDeclaration varDecl) throws XMLStreamException {
-		final boolean hasAttributes = !varDecl.getAttributes().isEmpty();
+		final boolean hasAttributes = !varDecl.getAttributes().isEmpty()
+				|| (varDecl.isInOutVar() && !varDecl.getInOutVarOpposite().getAttributes().isEmpty());
 		if (hasAttributes) {
 			addStartElement(LibraryElementTags.VAR_DECLARATION_ELEMENT);
 		} else {
@@ -209,6 +211,10 @@ public abstract class AbstractTypeExporter extends CommonElementExporter {
 		}
 
 		if (hasAttributes) {
+			if (varDecl.isInOutVar() && !varDecl.getInOutVarOpposite().isVisible()) {
+				addAttributeElement(LibraryElementTags.ELEMENT_INOUTVISIBLEOUT, IecTypes.ElementaryTypes.BOOL, "false", //$NON-NLS-1$
+						null);
+			}
 			addAttributes(varDecl.getAttributes());
 			addEndElement();
 		}

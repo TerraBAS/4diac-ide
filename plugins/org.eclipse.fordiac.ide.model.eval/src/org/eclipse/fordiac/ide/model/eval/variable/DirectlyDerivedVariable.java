@@ -13,7 +13,9 @@
 package org.eclipse.fordiac.ide.model.eval.variable;
 
 import org.eclipse.fordiac.ide.model.data.DirectlyDerivedType;
+import org.eclipse.fordiac.ide.model.eval.EvaluatorInitializerException;
 import org.eclipse.fordiac.ide.model.eval.value.Value;
+import org.eclipse.fordiac.ide.model.typelibrary.TypeLibrary;
 
 public class DirectlyDerivedVariable extends AbstractVariable<Value> {
 
@@ -21,7 +23,11 @@ public class DirectlyDerivedVariable extends AbstractVariable<Value> {
 
 	protected DirectlyDerivedVariable(final String name, final DirectlyDerivedType type) {
 		super(name, type);
-		delegate = VariableOperations.newVariable(type);
+		try {
+			delegate = VariableOperations.newVariable(type);
+		} catch (final Exception e) {
+			throw new EvaluatorInitializerException(type, e);
+		}
 	}
 
 	protected DirectlyDerivedVariable(final String name, final DirectlyDerivedType type, final String value) {
@@ -45,12 +51,12 @@ public class DirectlyDerivedVariable extends AbstractVariable<Value> {
 	}
 
 	@Override
-	public void setValue(final String value) throws IllegalArgumentException {
-		delegate.setValue(value);
+	public void setValue(final String value, final TypeLibrary typeLibrary) throws IllegalArgumentException {
+		delegate.setValue(value, typeLibrary);
 	}
 
 	@Override
-	public boolean validateValue(final String value) {
-		return delegate.validateValue(value);
+	public boolean validateValue(final String value, final TypeLibrary typeLibrary) {
+		return delegate.validateValue(value, typeLibrary);
 	}
 }

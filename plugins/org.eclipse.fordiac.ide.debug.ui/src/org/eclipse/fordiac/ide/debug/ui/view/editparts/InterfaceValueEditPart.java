@@ -1,6 +1,6 @@
 /*******************************************************************************
- * Copyright (c)  2012 - 2022 Profactor GmbH, fortiss GmbH,
- * 							  Primetals Technologies Austria GmbH
+ * Copyright (c)  2012, 2024 Profactor GmbH, fortiss GmbH,
+ * 							 Primetals Technologies Austria GmbH
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -18,9 +18,11 @@ package org.eclipse.fordiac.ide.debug.ui.view.editparts;
 import org.eclipse.draw2d.IFigure;
 import org.eclipse.draw2d.Label;
 import org.eclipse.fordiac.ide.debug.ui.view.policies.InterfaceValueDirectEditPolicy;
+import org.eclipse.fordiac.ide.gef.editparts.FigureCellEditorLocator;
+import org.eclipse.fordiac.ide.gef.editparts.InitialValueDirectEditManager;
 import org.eclipse.fordiac.ide.gef.editparts.LabelDirectEditManager;
-import org.eclipse.fordiac.ide.model.eval.value.Value;
 import org.eclipse.fordiac.ide.model.libraryElement.IInterfaceElement;
+import org.eclipse.fordiac.ide.model.libraryElement.VarDeclaration;
 import org.eclipse.gef.EditPolicy;
 import org.eclipse.gef.Request;
 import org.eclipse.gef.RequestConstants;
@@ -64,13 +66,17 @@ public class InterfaceValueEditPart extends AbstractDebugInterfaceValueEditPart 
 	}
 
 	private void performDirectEdit() {
-		final var labelDirectEditManager = new LabelDirectEditManager(this, getFigure());
-		labelDirectEditManager.show();
+		if (getModel().getInterfaceElement() instanceof final VarDeclaration varDecl) {
+			new InitialValueDirectEditManager(this, new FigureCellEditorLocator(getLabelFigure()), varDecl,
+					getLabelFigure().getText()).show();
+		} else {
+			new LabelDirectEditManager(this, getLabelFigure()).show();
+		}
 	}
 
-	public void setValue(final Value value) {
+	public void updateValue() {
 		if (isActive() && getFigure() != null) {
-			getFigure().setText(value.toString());
+			getLabelFigure().setText(getModel().getVariable().toString());
 			refreshVisuals();
 		}
 	}

@@ -19,7 +19,6 @@ package org.eclipse.fordiac.ide.gef.utilities;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 import org.eclipse.fordiac.ide.model.libraryElement.Connection;
 import org.eclipse.fordiac.ide.model.libraryElement.IInterfaceElement;
@@ -50,8 +49,8 @@ public final class ElementSelector {
 			final List<EditPart> editParts = getSelectableEditParts(viewer, viewObjects);
 			if (!editParts.isEmpty()) {
 				viewer.setSelection(new StructuredSelection(editParts));
-				if (viewer instanceof AdvancedScrollingGraphicalViewer) {
-					((AdvancedScrollingGraphicalViewer) viewer).revealEditPart(editParts.get(0));
+				if (viewer instanceof final AdvancedScrollingGraphicalViewer asViewer) {
+					asViewer.revealEditPart(editParts.get(0));
 				} else {
 					viewer.reveal(editParts.get(0));
 				}
@@ -63,11 +62,9 @@ public final class ElementSelector {
 	private static List<EditPart> getSelectableEditParts(final GraphicalViewer viewer,
 			final Collection<?> viewObjects) {
 		final List<EditPart> selectableChildren = new ArrayList<>();
-		final Map<Object, EditPart> editPartRegistry = viewer.getEditPartRegistry();
 		for (final Object view : viewObjects) {
-			final Object child = editPartRegistry.get(view);
-			if ((child instanceof EditPart) && ((EditPart) child).getModel().equals(view)) {
-				selectableChildren.add((EditPart) child);
+			if ((viewer.getEditPartForModel(view) instanceof final EditPart ep) && ep.getModel().equals(view)) {
+				selectableChildren.add(ep);
 			}
 		}
 		return selectableChildren;
@@ -80,17 +77,17 @@ public final class ElementSelector {
 
 			// if event gives us pin as output
 			final Object selection = ((StructuredSelection) event.getSelection()).getFirstElement();
-			if (selection instanceof IInterfaceElement) {
-				selElement = (IInterfaceElement) selection;
+			if (selection instanceof final IInterfaceElement ie) {
+				selElement = ie;
 			}
 
 			// if event gives us connection as output
-			if (selection instanceof Connection) {
+			if (selection instanceof final Connection conn) {
 				final TableViewer tableViewer = (TableViewer) event.getSource();
 				if (tableViewer.getInput().equals(((Connection) selection).getSource())) {
-					selElement = ((Connection) selection).getDestination();
+					selElement = conn.getDestination();
 				} else {
-					selElement = ((Connection) selection).getSource();
+					selElement = conn.getSource();
 				}
 			}
 

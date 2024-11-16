@@ -25,6 +25,7 @@ package org.eclipse.fordiac.ide.model.dataimport;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -65,9 +66,10 @@ import org.eclipse.fordiac.ide.model.libraryElement.Primitive;
 import org.eclipse.fordiac.ide.model.libraryElement.STAlgorithm;
 import org.eclipse.fordiac.ide.model.libraryElement.STMethod;
 import org.eclipse.fordiac.ide.model.libraryElement.ServiceInterface;
-import org.eclipse.fordiac.ide.model.libraryElement.ServiceInterfaceFBType;
 import org.eclipse.fordiac.ide.model.libraryElement.ServiceSequence;
 import org.eclipse.fordiac.ide.model.libraryElement.ServiceTransaction;
+import org.eclipse.fordiac.ide.model.libraryElement.SimpleECAction;
+import org.eclipse.fordiac.ide.model.libraryElement.SimpleECState;
 import org.eclipse.fordiac.ide.model.libraryElement.SimpleFBType;
 import org.eclipse.fordiac.ide.model.libraryElement.TextAlgorithm;
 import org.eclipse.fordiac.ide.model.libraryElement.TextMethod;
@@ -346,19 +348,6 @@ public class FBTImporter extends TypeImporter {
 		serviceTransaction.setInputPrimitive(inputPrimitive);
 	}
 
-	/**
-	 * This method converts a FBType to a ServiceInterfaceFBType.
-	 *
-	 * @param type - The FBType that is being converted to ServiceInterfaceFBType
-	 *
-	 * @return - A FBType that is converted
-	 */
-	private static FBType convertToServiceInterfaceType(final FBType type) {
-		final ServiceInterfaceFBType serviceType = LibraryElementFactory.eINSTANCE.createServiceInterfaceFBType();
-		copyGeneralTypeInformation(serviceType, type);
-		return serviceType;
-	}
-
 	private static void copyGeneralTypeInformation(final FBType dstType, final FBType srcType) {
 		dstType.setName(srcType.getName());
 		dstType.setComment(srcType.getComment());
@@ -394,7 +383,6 @@ public class FBTImporter extends TypeImporter {
 	private static void addAdapterFBToNetwork(final FBNetwork fbNetwork, final AdapterDeclaration adapterDecl) {
 		final AdapterFB adapterFB = adapterDecl.getAdapterFB();
 		fbNetwork.getNetworkElements().add(adapterFB);
-		adapterDecl.setAdapterNetworkFB(adapterFB);
 	}
 
 	/**
@@ -441,7 +429,38 @@ public class FBTImporter extends TypeImporter {
 	 * @throws XMLStreamException
 	 */
 	private void parseSimpleFB(final SimpleFBType type) throws TypeImportException, XMLStreamException {
-		processChildren(LibraryElementTags.SIMPLE_F_B_ELEMENT, name -> handleBaseFBChildren(type, name));
+		processChildren(LibraryElementTags.SIMPLE_F_B_ELEMENT, name -> handleSimpleFBChildren(type, name));
+		// create SimpleECSTate Elements if needed
+		// (this implicitly converts old type files)
+		final var inEvents = type.getInterfaceList().getEventInputs();
+		if (inEvents.size() > type.getSimpleECStates().size()) {
+			final var outEvents = type.getInterfaceList().getEventOutputs();
+			final Event stdOutEvent = !outEvents.isEmpty() ? outEvents.get(0) : null;
+			final var inEventSet = new LinkedHashSet<>(inEvents);
+			for (final var state : type.getSimpleECStates()) {
+				inEventSet.remove(state.getInputEvent());
+			}
+			for (final Event inEvent : inEventSet) {
+				final var state = LibraryElementFactory.eINSTANCE.createSimpleECState();
+				state.setName(inEvent.getName());
+				state.setInputEvent(inEvent);
+				final var action = LibraryElementFactory.eINSTANCE.createSimpleECAction();
+				action.setAlgorithm(inEvent.getName());
+				action.setOutput(stdOutEvent);
+				state.getSimpleECActions().add(action);
+				type.getSimpleECStates().add(state);
+			}
+		}
+
+	}
+
+	private boolean handleSimpleFBChildren(final SimpleFBType type, final String name)
+			throws TypeImportException, XMLStreamException {
+		if (LibraryElementTags.ECSTATE_ELEMENT.equals(name)) {
+			parseSimpleECState(type);
+			return true;
+		}
+		return handleBaseFBChildren(type, name);
 	}
 
 	private boolean handleBaseFBChildren(final BaseFBType type, final String name)
@@ -851,6 +870,51 @@ public class FBTImporter extends TypeImporter {
 	}
 
 	/**
+	 * This method parses an SimpleECState.
+	 *
+	 * @param type - the SimpleFBType containing the SimpleECState being parsed
+	 *
+	 * @throws TypeImportException the FBT import exception
+	 * @throws XMLStreamException
+	 */
+	private void parseSimpleECState(final SimpleFBType type) throws TypeImportException, XMLStreamException {
+		final SimpleECState state = LibraryElementFactory.eINSTANCE.createSimpleECState();
+		readNameCommentAttributes(state);
+
+		state.setInputEvent(type.getInterfaceList().getEvent(state.getName()));
+
+		processChildren(LibraryElementTags.ECSTATE_ELEMENT, name -> {
+			if (LibraryElementTags.ECACTION_ELEMENT.equals(name)) {
+				parseSimpleECAction(state);
+				return true;
+			}
+			return false;
+		});
+
+		type.getSimpleECStates().add(state);
+	}
+
+	/**
+	 * This method parses an SimpleECAction.
+	 *
+	 * @param type - the SimpleECState belonging to the SimpleECAction being parsed
+	 * @throws XMLStreamException
+	 */
+	private void parseSimpleECAction(final SimpleECState type) throws XMLStreamException {
+		final SimpleECAction ecAction = LibraryElementFactory.eINSTANCE.createSimpleECAction();
+		ecAction.setAlgorithm(getAttributeValue(LibraryElementTags.ALGORITHM_ELEMENT));
+		final String output = getAttributeValue(LibraryElementTags.OUTPUT_ATTRIBUTE);
+		if (null != output) {
+			final Event outp = outputEvents.get(output);
+			if (null != outp) {
+				ecAction.setOutput(outp);
+			}
+		}
+		proceedToEndElementNamed(LibraryElementTags.ECACTION_ELEMENT);
+		type.getSimpleECActions().add(ecAction);
+	}
+
+	/**
 	 * This method parses Internal Variables of a BaseFBType.
 	 *
 	 * @param type - the BaseFBType of which the Internal Variables will be parsed
@@ -1085,6 +1149,7 @@ public class FBTImporter extends TypeImporter {
 		aFB.setTypeEntry(adapter.getType().getTypeEntry());
 		aFB.setAdapterDecl(adapter);
 		adapter.setAdapterFB(aFB);
+		adapter.setInterfaceOnlyAdapterFB(aFB);
 		aFB.setName(adapter.getName());
 
 		if (null != aFB.getType() && null != aFB.getType().getInterfaceList()) {
@@ -1112,7 +1177,6 @@ public class FBTImporter extends TypeImporter {
 		final VarDeclaration varDecl = variables.get(varName);
 		if (varDecl != null && varDecl.isInOutVar() && !ev.isIsInput()) {
 			// we need to get the mirrored var in out
-			final InterfaceList il = (InterfaceList) varDecl.eContainer();
 			return varDecl.getInOutVarOpposite();
 		}
 		return varDecl;
@@ -1159,8 +1223,8 @@ public class FBTImporter extends TypeImporter {
 
 	private Event parseEvent(final String eventName) throws TypeImportException, XMLStreamException {
 		final Event e = LibraryElementFactory.eINSTANCE.createEvent();
-		e.setType(EventTypeLibrary.getInstance().getType(null));
-
+		final String type = getAttributeValue(LibraryElementTags.TYPE_ATTRIBUTE);
+		e.setType(EventTypeLibrary.getInstance().getType(type));
 		readNameCommentAttributes(e);
 		final List<String> withVars = new ArrayList<>();
 

@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.core.resources.IMarker;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.draw2d.FigureCanvas;
 import org.eclipse.draw2d.geometry.Point;
@@ -38,9 +37,11 @@ import org.eclipse.fordiac.ide.model.ConnectionLayoutTagger;
 import org.eclipse.fordiac.ide.model.errormarker.FordiacErrorMarker;
 import org.eclipse.fordiac.ide.model.libraryElement.Connection;
 import org.eclipse.fordiac.ide.model.libraryElement.FBNetwork;
+import org.eclipse.fordiac.ide.model.libraryElement.LibraryElement;
 import org.eclipse.fordiac.ide.model.libraryElement.SubApp;
 import org.eclipse.fordiac.ide.model.ui.Messages;
 import org.eclipse.fordiac.ide.model.ui.widgets.BreadcrumbWidget;
+import org.eclipse.fordiac.ide.model.ui.widgets.GoIntoSubappSelectionEvent;
 import org.eclipse.fordiac.ide.ui.FordiacLogHelper;
 import org.eclipse.fordiac.ide.ui.editors.AbstractCloseAbleFormEditor;
 import org.eclipse.gef.GraphicalViewer;
@@ -52,6 +53,7 @@ import org.eclipse.gef.commands.CompoundCommand;
 import org.eclipse.gef.editparts.ScalableFreeformRootEditPart;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.GridLayoutFactory;
+import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CTabFolder;
@@ -113,8 +115,7 @@ public abstract class AbstractBreadCrumbEditor extends AbstractCloseAbleFormEdit
 		}
 		memento = null;
 		// only add the selection change listener when our editor is full up
-		breadcrumb.addSelectionChangedListener(
-				event -> handleBreadCrumbSelection(((StructuredSelection) event.getSelection()).getFirstElement()));
+		breadcrumb.addSelectionChangedListener(this::handleBreadCrumbSelection);
 	}
 
 	private void initializeBreadcrumb() {
@@ -141,7 +142,24 @@ public abstract class AbstractBreadCrumbEditor extends AbstractCloseAbleFormEdit
 		return pageContainer;
 	}
 
-	protected void handleBreadCrumbSelection(final Object element) {
+	protected void handleBreadCrumbSelection(final SelectionChangedEvent event) {
+		final Object element = ((StructuredSelection) event.getSelection()).getFirstElement();
+		if (element instanceof final SubApp subapp && subapp.isUnfolded()
+				&& !(event instanceof GoIntoSubappSelectionEvent)) {
+			showAndSelectExpandedSubapp(subapp);
+		} else {
+			openEditor(element);
+		}
+	}
+
+	private void showAndSelectExpandedSubapp(final SubApp subapp) {
+		final EObject container = getFBNetworkContainer(subapp);
+		breadcrumb.setInput(container, (SelectionChangedEvent) null);
+		openEditor(container);
+		HandlerHelper.showExpandedSubapp(subapp, this);
+	}
+
+	private void openEditor(final Object element) {
 		final int pagenum = modelToEditorNum.computeIfAbsent(element, this::createEditor).intValue();
 		if (-1 != pagenum) {
 			setActivePage(pagenum);
@@ -223,7 +241,7 @@ public abstract class AbstractBreadCrumbEditor extends AbstractCloseAbleFormEdit
 		if (isConnectionLayoutPreferenceTicked() && isTagged(event)) {
 			if (event.isPostChangeEvent()) {
 				if (event.getDetail() == CommandStack.POST_EXECUTE) {
-					final GraphicalViewer viewer = getActiveEditor().getAdapter(GraphicalViewer.class);
+					final var viewer = getActiveEditor().getAdapter(GraphicalViewer.class);
 					// running the layout without flushing the viewer results in a bad state of the
 					// libavoid process
 					// -> do not allow auto layout if that is the case
@@ -258,12 +276,8 @@ public abstract class AbstractBreadCrumbEditor extends AbstractCloseAbleFormEdit
 
 	@Override
 	public void gotoMarker(final IMarker marker) {
-		try {
-			final EObject target = FordiacErrorMarker.getTargetEditable(marker);
-			gotoElement(target);
-		} catch (IllegalArgumentException | CoreException e) {
-			FordiacLogHelper.logWarning("Couldn't goto marker " + marker.toString(), e); //$NON-NLS-1$
-		}
+		final EObject target = FordiacErrorMarker.getTargetRelative(marker, getAdapter(LibraryElement.class));
+		gotoElement(target);
 	}
 
 	private void gotoElement(final EObject element) {
@@ -309,19 +323,17 @@ public abstract class AbstractBreadCrumbEditor extends AbstractCloseAbleFormEdit
 	public INavigationLocation createNavigationLocation() {
 		if (breadcrumb != null) {
 			final Object modelItem = breadcrumb.getActiveItem().getModel();
-			return (modelItem != null) ? new BreadcrumbNavigationLocation(this, modelItem) : null;
+			return (modelItem != null) ? new BreadcrumbNavigationLocation(this) : null;
 		}
 		return null;
 	}
 
 	@Override
 	public void saveState(final IMemento memento) {
-		final StringBuilder itemPath = new StringBuilder();
 		// if the editor content could not be loaded the bread crumb can be null
 		if (getBreadcrumb() != null) {
-			BreadcrumbNavigationLocation.generateItemPath(itemPath, getBreadcrumb().getActiveItem().getModel(),
-					getBreadcrumb().getContentProvider(), getBreadcrumb().getLabelProvider());
-			memento.putString(TAG_BREADCRUMB_HIERACHY, itemPath.substring(1));
+			memento.putString(TAG_BREADCRUMB_HIERACHY,
+					BreadcrumbNavigationLocation.generateItemPath(getBreadcrumb()).substring(1));
 
 			final GraphicalViewer viewer = getActiveEditor().getAdapter(GraphicalViewer.class);
 			if (null != viewer) {
@@ -383,7 +395,7 @@ public abstract class AbstractBreadCrumbEditor extends AbstractCloseAbleFormEdit
 		final IHandlerService handlerService = getHandlerService();
 		try {
 			final Event mule = new Event();
-			handlerService.executeCommand("org.eclipse.fordiac.ide.elk.connectionLayout", mule); //$NON-NLS-1$
+			handlerService.executeCommand("org.eclipse.fordiac.ide.elk.connectionLayoutMule", mule); //$NON-NLS-1$
 			return (Command) mule.data;
 		} catch (final Exception ex) {
 			throw new IllegalStateException("Could not execute layout command", ex); //$NON-NLS-1$

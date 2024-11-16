@@ -423,6 +423,14 @@ public class LibraryElementAdapterFactory extends AdapterFactoryImpl {
 				return createServiceInterfaceFBTypeAdapter();
 			}
 			@Override
+			public Adapter caseSimpleECAction(SimpleECAction object) {
+				return createSimpleECActionAdapter();
+			}
+			@Override
+			public Adapter caseSimpleECState(SimpleECState object) {
+				return createSimpleECStateAdapter();
+			}
+			@Override
 			public Adapter caseSimpleFBType(SimpleFBType object) {
 				return createSimpleFBTypeAdapter();
 			}
@@ -1699,6 +1707,34 @@ public class LibraryElementAdapterFactory extends AdapterFactoryImpl {
 	 * @generated
 	 */
 	public Adapter createServiceInterfaceFBTypeAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link org.eclipse.fordiac.ide.model.libraryElement.SimpleECAction <em>Simple EC Action</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see org.eclipse.fordiac.ide.model.libraryElement.SimpleECAction
+	 * @generated
+	 */
+	public Adapter createSimpleECActionAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link org.eclipse.fordiac.ide.model.libraryElement.SimpleECState <em>Simple EC State</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see org.eclipse.fordiac.ide.model.libraryElement.SimpleECState
+	 * @generated
+	 */
+	public Adapter createSimpleECStateAdapter() {
 		return null;
 	}
 

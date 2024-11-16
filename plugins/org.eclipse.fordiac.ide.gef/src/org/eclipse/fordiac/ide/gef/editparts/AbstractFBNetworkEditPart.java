@@ -16,6 +16,7 @@ package org.eclipse.fordiac.ide.gef.editparts;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
@@ -23,18 +24,19 @@ import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.draw2d.ConnectionRouter;
 import org.eclipse.draw2d.IFigure;
-import org.eclipse.emf.common.util.EList;
+import org.eclipse.fordiac.ide.gef.annotation.AnnotableGraphicalEditPart;
+import org.eclipse.fordiac.ide.gef.annotation.FordiacAnnotationUtil;
+import org.eclipse.fordiac.ide.gef.annotation.GraphicalAnnotationModel;
+import org.eclipse.fordiac.ide.gef.annotation.GraphicalAnnotationModelEvent;
 import org.eclipse.fordiac.ide.gef.router.MoveableRouter;
 import org.eclipse.fordiac.ide.model.libraryElement.FBNetwork;
 import org.eclipse.fordiac.ide.model.libraryElement.FBNetworkElement;
-import org.eclipse.fordiac.ide.model.libraryElement.SubApp;
 import org.eclipse.fordiac.ide.model.libraryElement.Value;
-import org.eclipse.fordiac.ide.model.libraryElement.VarDeclaration;
 import org.eclipse.fordiac.ide.ui.FordiacLogHelper;
 import org.eclipse.gef.EditPart;
 import org.eclipse.gef.GraphicalEditPart;
 
-public abstract class AbstractFBNetworkEditPart extends AbstractDiagramEditPart {
+public abstract class AbstractFBNetworkEditPart extends AbstractDiagramEditPart implements AnnotableGraphicalEditPart {
 
 	/** The child providers. */
 	private List<IChildrenProvider> childProviders = null;
@@ -67,7 +69,22 @@ public abstract class AbstractFBNetworkEditPart extends AbstractDiagramEditPart 
 				children.addAll(provider.getChildren(getModel()));
 			}
 		}
+
+		final GraphicalAnnotationModel annotationModel = FordiacAnnotationUtil.getAnnotationModel(this);
+		if (annotationModel != null) {
+			children.addAll(annotationModel.getAnnotations(getModel()));
+		}
+
 		return children;
+	}
+
+	@Override
+	public void updateAnnotations(final GraphicalAnnotationModelEvent event) {
+		if (!event.getAdded().isEmpty() || !event.getRemoved().isEmpty()) {
+			refreshChildren();
+		}
+		event.getChanged().stream().map(getViewer().getEditPartRegistry()::get).filter(Objects::nonNull)
+				.forEachOrdered(EditPart::refresh);
 	}
 
 	@Override
@@ -120,29 +137,11 @@ public abstract class AbstractFBNetworkEditPart extends AbstractDiagramEditPart 
 			element.getInterface().getVisibleInputVars().stream().filter(di -> (di.getValue() != null))
 					.forEach(di -> valueElements.add(di.getValue()));
 			element.getInterface().getInOutVars().stream().filter(di -> (di.getValue() != null))
-					.filter(this::varInOutFilter).forEach(di -> valueElements.add(di.getValue()));
+					.forEach(di -> valueElements.add(di.getValue()));
 			element.getInterface().getErrorMarker().stream().filter(er -> (er.getValue() != null))
 					.forEach(er -> valueElements.add(er.getValue()));
 		}
 		return valueElements;
-	}
-
-	protected boolean varInOutFilter(final VarDeclaration it) {
-		if (it.getFBNetworkElement() instanceof final SubApp subApp) {
-			VarDeclaration varToUse = it;
-			if (subApp.isTyped()) {
-				final EList<VarDeclaration> varList = (it.isIsInput())
-						? subApp.getType().getInterfaceList().getInOutVars()
-						: subApp.getType().getInterfaceList().getOutMappedInOutVars();
-				varToUse = varList.stream().filter(typeVar -> it.getName().equals(typeVar.getName())).findAny()
-						.orElse(null);
-			}
-			if (varToUse != null) {
-				return varToUse.isIsInput() ? !varToUse.getOutputConnections().isEmpty()
-						: !varToUse.getInputConnections().isEmpty();
-			}
-		}
-		return true;
 	}
 
 	private List<IChildrenProvider> getChildrenProviders() {

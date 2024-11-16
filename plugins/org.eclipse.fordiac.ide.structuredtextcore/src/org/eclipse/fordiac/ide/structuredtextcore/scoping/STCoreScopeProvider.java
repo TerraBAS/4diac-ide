@@ -25,6 +25,7 @@ package org.eclipse.fordiac.ide.structuredtextcore.scoping;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -57,8 +58,8 @@ import org.eclipse.xtext.scoping.impl.IScopeWrapper;
 import org.eclipse.xtext.scoping.impl.ImportNormalizer;
 import org.eclipse.xtext.scoping.impl.ImportScope;
 import org.eclipse.xtext.scoping.impl.ScopeBasedSelectable;
+import org.eclipse.xtext.scoping.impl.SelectableBasedScope;
 import org.eclipse.xtext.scoping.impl.SimpleScope;
-import org.eclipse.xtext.util.SimpleAttributeResolver;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -72,21 +73,21 @@ import com.google.inject.Inject;
  * on how and when to use it.
  */
 public class STCoreScopeProvider extends AbstractSTCoreScopeProvider {
-	protected static final EObjectDescription[] ADDITIONAL_LITERAL_TYPES = {
-			descriptionForType("D", ElementaryTypes.DATE), //$NON-NLS-1$
-			descriptionForType("LD", ElementaryTypes.LDATE), //$NON-NLS-1$
-			descriptionForType("T", ElementaryTypes.TIME), //$NON-NLS-1$
-			descriptionForType("LT", ElementaryTypes.LTIME) //$NON-NLS-1$
-	};
+	private static final List<IEObjectDescription> NON_USER_DEFINED_TYPES_DESCRIPTIONS = DataTypeLibrary
+			.getNonUserDefinedDataTypes().stream().map(STCoreScopeProvider::descriptionForType).toList();
 
-	protected static boolean isAnyElementaryLiteral(final EReference reference) {
-		return (reference == STCorePackage.Literals.ST_NUMERIC_LITERAL__TYPE
-				|| reference == STCorePackage.Literals.ST_DATE_LITERAL__TYPE
-				|| reference == STCorePackage.Literals.ST_TIME_LITERAL__TYPE
-				|| reference == STCorePackage.Literals.ST_TIME_OF_DAY_LITERAL__TYPE
-				|| reference == STCorePackage.Literals.ST_DATE_AND_TIME_LITERAL__TYPE
-				|| reference == STCorePackage.Literals.ST_STRING_LITERAL__TYPE);
-	}
+	private static final List<IEObjectDescription> LITERAL_TYPES_DESCRIPTIONS = Stream
+			.concat(NON_USER_DEFINED_TYPES_DESCRIPTIONS.stream(), Stream.of(//
+					descriptionForType("D", ElementaryTypes.DATE), //$NON-NLS-1$
+					descriptionForType("LD", ElementaryTypes.LDATE), //$NON-NLS-1$
+					descriptionForType("T", ElementaryTypes.TIME), //$NON-NLS-1$
+					descriptionForType("LT", ElementaryTypes.LTIME) //$NON-NLS-1$
+			)).toList();
+
+	private static final Set<EReference> ANY_ELEMENTARY_LITERAL_REFERENCES = Set.of(
+			STCorePackage.Literals.ST_NUMERIC_LITERAL__TYPE, STCorePackage.Literals.ST_DATE_LITERAL__TYPE,
+			STCorePackage.Literals.ST_TIME_LITERAL__TYPE, STCorePackage.Literals.ST_TIME_OF_DAY_LITERAL__TYPE,
+			STCorePackage.Literals.ST_DATE_AND_TIME_LITERAL__TYPE, STCorePackage.Literals.ST_STRING_LITERAL__TYPE);
 
 	@Inject
 	IQualifiedNameProvider qualifiedNameProvider;
@@ -100,19 +101,14 @@ public class STCoreScopeProvider extends AbstractSTCoreScopeProvider {
 	public IScope getScope(final EObject context, final EReference reference) {
 		if (reference == STCorePackage.Literals.ST_VAR_DECLARATION__TYPE) {
 			final IScope globalScope = super.getScope(context, reference);
-			return scopeFor(DataTypeLibrary.getNonUserDefinedDataTypes(),
-					filterScope(globalScope, this::isApplicableForVariableType));
+			return scopeForNonUserDefinedDataTypes(filterScope(globalScope, this::isApplicableForVariableType));
 		}
 		if (reference == STCorePackage.Literals.ST_TYPE_DECLARATION__TYPE) {
 			final IScope globalScope = super.getScope(context, reference);
-			return scopeFor(DataTypeLibrary.getNonUserDefinedDataTypes(),
-					filterScope(globalScope, this::isApplicableForTypeDeclaration));
+			return scopeForNonUserDefinedDataTypes(filterScope(globalScope, this::isApplicableForTypeDeclaration));
 		}
 		if (isAnyElementaryLiteral(reference)) {
-			return new SimpleScope(Stream.concat(
-					StreamSupport.stream(Scopes.scopedElementsFor(DataTypeLibrary.getNonUserDefinedDataTypes(),
-							QualifiedName.wrapper(SimpleAttributeResolver.NAME_RESOLVER)).spliterator(), false),
-					Stream.of(ADDITIONAL_LITERAL_TYPES)).toList(), true);
+			return new SimpleScope(LITERAL_TYPES_DESCRIPTIONS, true);
 		}
 		if (reference == STCorePackage.Literals.ST_FEATURE_EXPRESSION__FEATURE) {
 			final var receiver = getReceiver(context);
@@ -165,15 +161,11 @@ public class STCoreScopeProvider extends AbstractSTCoreScopeProvider {
 		} else if (reference == STCorePackage.Literals.ST_ATTRIBUTE__DECLARATION) {
 			return super.getScope(context, reference);
 		}
-		return IScope.NULLSCOPE;
+		return super.getScope(context, reference);
 	}
 
-	protected static IScope scopeFor(final Iterable<? extends EObject> elements) {
-		return scopeFor(elements, IScope.NULLSCOPE);
-	}
-
-	protected static IScope scopeFor(final Iterable<? extends EObject> elements, final IScope parent) {
-		return new SimpleScope(parent, Scopes.scopedElementsFor(elements), true);
+	protected static IScope scopeForNonUserDefinedDataTypes(final IScope parent) {
+		return new SimpleScope(parent, NON_USER_DEFINED_TYPES_DESCRIPTIONS, true);
 	}
 
 	protected IScope qualifiedScope(final Iterable<? extends EObject> elements, final EReference reference) {
@@ -183,14 +175,18 @@ public class STCoreScopeProvider extends AbstractSTCoreScopeProvider {
 	protected IScope qualifiedScope(final Iterable<? extends EObject> elements, final EReference reference,
 			final IScope parent) {
 		final Iterable<IEObjectDescription> descriptions = Scopes.scopedElementsFor(elements, qualifiedNameProvider);
-		final List<ImportNormalizer> importNormalizers = createImportNormalizers(descriptions);
 		final ScopeBasedSelectable importFrom = new ScopeBasedSelectable(wrap(new SimpleScope(descriptions, true)));
+		final List<ImportNormalizer> importNormalizers = createImportNormalizers(descriptions);
+		if (importNormalizers.isEmpty()) {
+			return SelectableBasedScope.createScope(parent, importFrom, reference.getEReferenceType(), true);
+		}
 		return new ImportScope(importNormalizers, parent, importFrom, reference.getEReferenceType(), true);
 	}
 
 	protected static List<ImportNormalizer> createImportNormalizers(final Iterable<IEObjectDescription> descriptions) {
 		return StreamSupport.stream(descriptions.spliterator(), false).map(IEObjectDescription::getQualifiedName)
-				.map(name -> name.skipLast(1)).distinct().map(STCoreScopeProvider::createImportNormalizer).toList();
+				.map(name -> name.skipLast(1)).filter(java.util.function.Predicate.not(QualifiedName::isEmpty))
+				.distinct().map(STCoreScopeProvider::createImportNormalizer).toList();
 	}
 
 	protected static ImportNormalizer createImportNormalizer(final QualifiedName importedNamespace) {
@@ -232,6 +228,10 @@ public class STCoreScopeProvider extends AbstractSTCoreScopeProvider {
 						&& !LibraryElementPackage.eINSTANCE.getEvent().isSuperTypeOf(clazz));
 	}
 
+	protected static boolean isAnyElementaryLiteral(final EReference reference) {
+		return ANY_ELEMENTARY_LITERAL_REFERENCES.contains(reference);
+	}
+
 	protected static STExpression getReceiver(final EObject context) {
 		if (context instanceof STFeatureExpression) {
 			return getReceiver(context.eContainer());
@@ -252,7 +252,11 @@ public class STCoreScopeProvider extends AbstractSTCoreScopeProvider {
 		return null;
 	}
 
-	protected static EObjectDescription descriptionForType(final String name, final DataType type) {
+	protected static IEObjectDescription descriptionForType(final DataType type) {
+		return new EObjectDescription(QualifiedName.create(type.getName()), type, null);
+	}
+
+	protected static IEObjectDescription descriptionForType(final String name, final DataType type) {
 		return new EObjectDescription(QualifiedName.create(name), type, null);
 	}
 

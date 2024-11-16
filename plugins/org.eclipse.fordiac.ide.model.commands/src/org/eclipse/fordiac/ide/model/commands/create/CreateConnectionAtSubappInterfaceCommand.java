@@ -18,6 +18,7 @@ import java.util.Set;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.fordiac.ide.model.commands.ScopedCommand;
 import org.eclipse.fordiac.ide.model.data.EventType;
+import org.eclipse.fordiac.ide.model.helpers.ArraySizeHelper;
 import org.eclipse.fordiac.ide.model.libraryElement.AdapterType;
 import org.eclipse.fordiac.ide.model.libraryElement.IInterfaceElement;
 import org.eclipse.fordiac.ide.model.libraryElement.SubApp;
@@ -38,7 +39,7 @@ public class CreateConnectionAtSubappInterfaceCommand extends Command implements
 	@Override
 	public void execute() {
 		createIECmdCommand = new CreateInterfaceElementCommand(ie.getType(), ie.getName(), subApp.getInterface(),
-				ie.isIsInput(), -1);
+				ie.isIsInput(), ArraySizeHelper.getArraySize(ie), -1);
 
 		if (ie.getType() instanceof EventType) {
 			createConCommand = new EventConnectionCreateCommand(subApp.getSubAppNetwork());

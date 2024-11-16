@@ -20,6 +20,8 @@ import org.eclipse.osgi.util.NLS;
 public final class Messages extends NLS {
 	private static final String BUNDLE_NAME = "org.eclipse.fordiac.ide.model.messages"; //$NON-NLS-1$
 
+	public static String ArrayValueConverter_InvalidRepeatSyntax;
+
 	public static String CommonElementImporter_ERROR_DeclarationNotSet;
 	public static String CommonElementImporter_ERROR_MissingAuthorInfo;
 	public static String CommonElementImporter_ERROR_MissingVersionInfo;
@@ -35,6 +37,14 @@ public final class Messages extends NLS {
 	public static String ConnectionAnnotations_SourceElementMissing;
 	public static String ConnectionAnnotations_SourceEndpointMissing;
 	public static String ConnectionAnnotations_TypeMismatch;
+
+	public static String ConnectionAnnotations_TypeMismatchInOut;
+
+	public static String ConnectionAnnotations_TypeMismatchInOutIntermediate;
+
+	public static String ConnectionAnnotations_TypeMismatchInOutSeparator;
+
+	public static String ConnectionAnnotations_TypeMismatchInOutVia;
 	public static String ConnectionHelper_ErrorMarker_Dest_Missing;
 	public static String ConnectionHelper_ErrorMarker_Source_Missing;
 	public static String ConnectionHelper_pin_not_found;
@@ -52,6 +62,8 @@ public final class Messages extends NLS {
 	public static String DataTypeLibrary_MissingDatatype;
 	public static String Error_RecursiveType;
 	public static String Error_SelfInsertion;
+	public static String ErrorMarkerInterfaceAnnotations_MissingVariableForAttribute;
+
 	public static String ErrorMarkerInterfaceAnnotations_MissingVariableForValue;
 	public static String FBNetworkAnnotations_CollisionMessage;
 
@@ -72,11 +84,11 @@ public final class Messages extends NLS {
 	public static String FordiacTypeResource_TypeImportError;
 	public static String FordiacTypeResource_UnsupportedFileType;
 	public static String FordiacTypeResource_XMLError;
-	public static String IdentifierVerifier_ERROR_IdentifierLengthZero;
-	public static String IdentifierVerifier_ERROR_InvalidStartSymbol;
-	public static String IdentifierVerifier_ERROR_InvalidSymbolUsedInIdentifer;
-	public static String IdentifierVerifier_PackageNameNotAValidIdentifier;
-	public static String IdentifierVerifier_PackageNameReservedKeyword;
+	public static String IdentifierVerifier_NameConsecutiveUnderscore;
+	public static String IdentifierVerifier_NameNotAValidIdentifier;
+	public static String IdentifierVerifier_NameReservedKeyWord;
+	public static String IdentifierVerifier_NameTrailingUnderscore;
+	public static String IdentifierVerifier_PackageNameMessage;
 	public static String Import_ERROR_InputVariableTypeNotDefined;
 	public static String Import_ERROR_NameNotDefined;
 	public static String ImportUtils_ERROR_ParameterNotSet;
@@ -91,8 +103,7 @@ public final class Messages extends NLS {
 	public static String LinkConstraints_STATUSMessage_IN_IN_OUT_OUT_notAllowed;
 	public static String LinkConstraints_STATUSMessage_NotCompatible;
 	public static String NameRepository_NameAlreadyExists;
-	public static String NameRepository_NameNotAValidIdentifier;
-	public static String NameRepository_NameReservedKeyWord;
+	public static String StructValueConverter_InvalidStructLiteral;
 	public static String TypedElementAnnotations_TypeNotFound;
 	public static String TypedElementAnnotations_TypeNotSet;
 	public static String TypeLibrary_TypeExists;

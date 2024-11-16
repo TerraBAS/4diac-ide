@@ -75,6 +75,7 @@ import org.eclipse.fordiac.ide.model.libraryElement.GlobalConstants;
 import org.eclipse.fordiac.ide.model.libraryElement.Group;
 import org.eclipse.fordiac.ide.model.libraryElement.HiddenElement;
 import org.eclipse.fordiac.ide.model.libraryElement.IInterfaceElement;
+import org.eclipse.fordiac.ide.model.libraryElement.INamedElement;
 import org.eclipse.fordiac.ide.model.libraryElement.Identification;
 import org.eclipse.fordiac.ide.model.libraryElement.Import;
 import org.eclipse.fordiac.ide.model.libraryElement.InputPrimitive;
@@ -111,6 +112,8 @@ import org.eclipse.fordiac.ide.model.libraryElement.ServiceInterface;
 import org.eclipse.fordiac.ide.model.libraryElement.ServiceInterfaceFBType;
 import org.eclipse.fordiac.ide.model.libraryElement.ServiceSequence;
 import org.eclipse.fordiac.ide.model.libraryElement.ServiceTransaction;
+import org.eclipse.fordiac.ide.model.libraryElement.SimpleECAction;
+import org.eclipse.fordiac.ide.model.libraryElement.SimpleECState;
 import org.eclipse.fordiac.ide.model.libraryElement.SimpleFBType;
 import org.eclipse.fordiac.ide.model.libraryElement.StructManipulator;
 import org.eclipse.fordiac.ide.model.libraryElement.SubAppType;
@@ -244,6 +247,8 @@ public class LibraryElementFactoryImpl extends EFactoryImpl implements LibraryEl
 			case LibraryElementPackage.SERVICE_TRANSACTION: return createServiceTransaction();
 			case LibraryElementPackage.SERVICE_INTERFACE: return createServiceInterface();
 			case LibraryElementPackage.SERVICE_INTERFACE_FB_TYPE: return createServiceInterfaceFBType();
+			case LibraryElementPackage.SIMPLE_EC_ACTION: return createSimpleECAction();
+			case LibraryElementPackage.SIMPLE_EC_STATE: return createSimpleECState();
 			case LibraryElementPackage.SIMPLE_FB_TYPE: return createSimpleFBType();
 			case LibraryElementPackage.ST_ALGORITHM: return createSTAlgorithm();
 			case LibraryElementPackage.ST_FUNCTION: return createSTFunction();
@@ -282,6 +287,8 @@ public class LibraryElementFactoryImpl extends EFactoryImpl implements LibraryEl
 				return createInterfaceElementStreamFromString(eDataType, initialValue);
 			case LibraryElementPackage.IPROJECT:
 				return createIProjectFromString(eDataType, initialValue);
+			case LibraryElementPackage.NAMED_ELEMENT_STREAM:
+				return createNamedElementStreamFromString(eDataType, initialValue);
 			case LibraryElementPackage.POINT:
 				return createPointFromString(eDataType, initialValue);
 			case LibraryElementPackage.TYPE_ENTRY:
@@ -313,6 +320,8 @@ public class LibraryElementFactoryImpl extends EFactoryImpl implements LibraryEl
 				return convertInterfaceElementStreamToString(eDataType, instanceValue);
 			case LibraryElementPackage.IPROJECT:
 				return convertIProjectToString(eDataType, instanceValue);
+			case LibraryElementPackage.NAMED_ELEMENT_STREAM:
+				return convertNamedElementStreamToString(eDataType, instanceValue);
 			case LibraryElementPackage.POINT:
 				return convertPointToString(eDataType, instanceValue);
 			case LibraryElementPackage.TYPE_ENTRY:
@@ -1113,6 +1122,28 @@ public class LibraryElementFactoryImpl extends EFactoryImpl implements LibraryEl
 	 * @generated
 	 */
 	@Override
+	public SimpleECAction createSimpleECAction() {
+		SimpleECActionImpl simpleECAction = new SimpleECActionImpl();
+		return simpleECAction;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public SimpleECState createSimpleECState() {
+		SimpleECStateImpl simpleECState = new SimpleECStateImpl();
+		return simpleECState;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
 	public SimpleFBType createSimpleFBType() {
 		SimpleFBTypeImpl simpleFBType = new SimpleFBTypeImpl();
 		return simpleFBType;
@@ -1374,6 +1405,25 @@ public class LibraryElementFactoryImpl extends EFactoryImpl implements LibraryEl
 	 */
 	public String convertIProjectToString(EDataType eDataType, Object instanceValue) {
 		return super.convertToString(eDataType, instanceValue);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@SuppressWarnings("unchecked")
+	public Stream<INamedElement> createNamedElementStreamFromString(EDataType eDataType, String initialValue) {
+		return (Stream<INamedElement>)super.createFromString(initialValue);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	public String convertNamedElementStreamToString(EDataType eDataType, Object instanceValue) {
+		return super.convertToString(instanceValue);
 	}
 
 	/**

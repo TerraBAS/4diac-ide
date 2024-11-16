@@ -28,6 +28,7 @@ import org.eclipse.fordiac.ide.model.libraryElement.Event;
 import org.eclipse.fordiac.ide.model.libraryElement.IInterfaceElement;
 import org.eclipse.fordiac.ide.model.libraryElement.StructManipulator;
 import org.eclipse.fordiac.ide.model.libraryElement.VarDeclaration;
+import org.eclipse.fordiac.ide.model.libraryElement.impl.InterfaceElementAnnotations;
 import org.eclipse.fordiac.ide.model.typelibrary.TypeLibrary;
 import org.eclipse.fordiac.ide.model.typelibrary.TypeLibraryManager;
 import org.eclipse.fordiac.ide.model.ui.editors.DataTypeDropdown;
@@ -152,8 +153,10 @@ public class TypeSelectionWidget {
 					PackageNameHelper.getContainerPackageName(type), ImportHelper.getContainerImports(type));
 			tableViewer.setInput(new String[] { newName });
 			resizeTextField();
-		} else if (type instanceof IInterfaceElement) {
-			tableViewer.setInput(new String[] { ((IInterfaceElement) configurableObject).getType().getName() });
+		} else if (type instanceof final VarDeclaration varDecl) {
+			tableViewer.setInput(new String[] { InterfaceElementAnnotations.getFullTypeName(varDecl) });
+		} else if (type instanceof final IInterfaceElement interfaceElement) {
+			tableViewer.setInput(new String[] { interfaceElement.getType().getName() });
 		} else if (type instanceof final ConfigurableMoveFB moveFb) {
 			if (moveFb.getDataType() == null) {
 				tableViewer.setInput(new String[] { IecTypes.GenericTypes.ANY.getName() });
@@ -169,7 +172,9 @@ public class TypeSelectionWidget {
 	}
 
 	public void refresh() {
-		if (configurableObject instanceof final IInterfaceElement iel) {
+		if (configurableObject instanceof final VarDeclaration varDecl) {
+			tableViewer.setInput(new String[] { InterfaceElementAnnotations.getFullTypeName(varDecl) });
+		} else if (configurableObject instanceof final IInterfaceElement iel) {
 			tableViewer.setInput(new String[] { iel.getType().getName() });
 		}
 		disableOpenEditorForAnyType();
@@ -180,7 +185,7 @@ public class TypeSelectionWidget {
 				new DataTypeDropdown(this::getTypeLibrary, contentProvider, treeContentProvider, tableViewer) };
 	}
 
-	private TableViewer createTableViewer(final Composite parent) {
+	private static TableViewer createTableViewer(final Composite parent) {
 		final TableViewer viewer = new TableViewer(parent, SWT.NO_SCROLL | SWT.BORDER);
 
 		final Table table = viewer.getTable();
@@ -190,9 +195,15 @@ public class TypeSelectionWidget {
 		table.setLayoutData(new GridData(SWT.FILL, 0, true, false));
 		table.setLinesVisible(false);
 		table.setHeaderVisible(false);
-		new TableColumn(table, SWT.NONE);
+		addTableColumn(table);
 
 		return viewer;
+	}
+
+	@SuppressWarnings("unused")
+	private static void addTableColumn(final Table table) {
+		// The constructor adds the newly instantiated TableColumn to the table
+		new TableColumn(table, SWT.NONE);
 	}
 
 	private void resizeTextField() {
@@ -201,9 +212,17 @@ public class TypeSelectionWidget {
 		table.setLayout(new TableLayout());
 		table.setLayoutData(new GridData(SWT.FILL, 0, false, false));
 
-		new TableColumn(table, SWT.NONE)
-				.setWidth(table.getItemCount() > 0 ? table.getItem(0).getBounds().width + 30 : 150);
+		final TableColumn tableColumn = new TableColumn(table, SWT.NONE);
+		tableColumn.setWidth(getMinWidth(table));
 		table.requestLayout();
+	}
+
+	private static int getMinWidth(final Table table) {
+		final int width = table.getItemCount() > 0 ? table.getItem(0).getBounds().width + 30 : 150;
+		if (width < 150) {
+			return 150;
+		}
+		return width;
 	}
 
 	private void disableOpenEditorForAnyType() {

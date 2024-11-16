@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 - 2017 Profactor GmbH, TU Wien ACIN, AIT, fortiss GmbH.
+ * Copyright (c) 2008, 2024 Profactor GmbH, TU Wien ACIN, AIT, fortiss GmbH.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -12,10 +12,8 @@
  *     - initial API and implementation and/or initial documentation
  *   Bianca Wiesmayr, Melanie Winter
  *     - change canvas, fix problem with size calculation when dragging elements
- *   Felix Roithmayr
- *     - added support for new commands and context menu items
- *   Fabio Gandolfi
- *     - added Listener to load Service Sequences on tabswitch
+ *   Felix Roithmayr - added support for new commands and context menu items
+ *   Fabio Gandolfi  - added Listener to load Service Sequences on tabswitch
  *******************************************************************************/
 package org.eclipse.fordiac.ide.fbtypeeditor.servicesequence;
 
@@ -43,7 +41,6 @@ import org.eclipse.fordiac.ide.model.libraryElement.AutomationSystem;
 import org.eclipse.fordiac.ide.model.libraryElement.FBType;
 import org.eclipse.fordiac.ide.model.libraryElement.Service;
 import org.eclipse.fordiac.ide.model.libraryElement.ServiceSequence;
-import org.eclipse.fordiac.ide.typemanagement.FBTypeEditorInput;
 import org.eclipse.fordiac.ide.ui.imageprovider.FordiacImage;
 import org.eclipse.gef.ContextMenuProvider;
 import org.eclipse.gef.DefaultEditDomain;
@@ -71,18 +68,15 @@ import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.actions.ActionFactory;
+import org.eclipse.ui.views.contentoutline.IContentOutlinePage;
 
 public class ServiceSequenceEditor extends DiagramEditorWithFlyoutPalette implements IFBTEditorPart {
 
-	private FBType fbType;
 	private CommandStack commandStack;
 
 	@Override
 	public void init(final IEditorSite site, final IEditorInput input) throws PartInitException {
 		setInputWithNotify(input);
-		if (input instanceof final FBTypeEditorInput untypedInput) {
-			fbType = untypedInput.getContent();
-		}
 		super.init(site, input);
 		setPartName(Messages.ServiceSequenceEditor_Service);
 		setTitleImage(FordiacImage.ICON_SERVICE_SEQUENCE.getImage());
@@ -159,7 +153,7 @@ public class ServiceSequenceEditor extends DiagramEditorWithFlyoutPalette implem
 	@Override
 	public boolean outlineSelectionChanged(final Object selectedElement) {
 		if (null != selectedElement) {
-			final Object editpart = getGraphicalViewer().getEditPartRegistry().get(selectedElement);
+			final Object editpart = getGraphicalViewer().getEditPartForModel(selectedElement);
 			getGraphicalViewer().flush();
 			if (editpart instanceof final EditPart ep && ep.isSelectable()) {
 				getGraphicalViewer().select(ep);
@@ -189,14 +183,13 @@ public class ServiceSequenceEditor extends DiagramEditorWithFlyoutPalette implem
 	}
 
 	@Override
-	public void reloadType(final FBType type) {
-		this.fbType = type;
-		getGraphicalViewer().setContents(fbType);
+	public void reloadType() {
+		getGraphicalViewer().setContents(getType());
 	}
 
 	@Override
 	public Object getModel() {
-		return fbType;
+		return getType();
 	}
 
 	@Override
@@ -256,7 +249,7 @@ public class ServiceSequenceEditor extends DiagramEditorWithFlyoutPalette implem
 	}
 
 	@Override
-	public Object getSelectableEditPart() {
+	public Object getSelectableObject() {
 		if (getGraphicalViewer() == null) {
 			return null;
 		}
@@ -265,11 +258,14 @@ public class ServiceSequenceEditor extends DiagramEditorWithFlyoutPalette implem
 
 	@Override
 	public <T> T getAdapter(final Class<T> adapter) {
+		if (adapter == IContentOutlinePage.class) {
+			return null; // use outline page from FBTypeEditor
+		}
 		if (adapter == CommandStack.class) {
 			return adapter.cast(commandStack);
 		}
 		if (adapter == Service.class) {
-			return adapter.cast(fbType.getService());
+			return adapter.cast(getType().getService());
 		}
 		return super.getAdapter(adapter);
 	}
@@ -279,11 +275,12 @@ public class ServiceSequenceEditor extends DiagramEditorWithFlyoutPalette implem
 	}
 
 	void setServiceSequences() {
-		final List<ServiceSequence> serviceSeqs = ServiceSequenceSaveAndLoadHelper.loadServiceSequencesFromFile(fbType);
+		final List<ServiceSequence> serviceSeqs = ServiceSequenceSaveAndLoadHelper
+				.loadServiceSequencesFromFile(getType());
 
 		final CompoundCommand cmds = new CompoundCommand();
 		for (final ServiceSequence seq : serviceSeqs) {
-			cmds.add(new CreateServiceSequenceCommand(fbType.getService(), seq));
+			cmds.add(new CreateServiceSequenceCommand(getType().getService(), seq));
 		}
 
 		if (cmds.canExecute()) {

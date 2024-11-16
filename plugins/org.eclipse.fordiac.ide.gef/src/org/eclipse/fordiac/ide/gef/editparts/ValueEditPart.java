@@ -1,6 +1,6 @@
 /*******************************************************************************
- * Copyright (c) 2008, 2009, 2012, 2014 - 2017 Profactor GbmH, fortiss GmbH
- * 				 2019 Johannes Kepler University Linz
+ * Copyright (c) 2008, 2024 Profactor GbmH, fortiss GmbH,
+ *                          Johannes Kepler University Linz
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -16,7 +16,6 @@
 package org.eclipse.fordiac.ide.gef.editparts;
 
 import org.eclipse.draw2d.AncestorListener;
-import org.eclipse.draw2d.Border;
 import org.eclipse.draw2d.ColorConstants;
 import org.eclipse.draw2d.ConnectionAnchor;
 import org.eclipse.draw2d.FigureUtilities;
@@ -35,8 +34,7 @@ import org.eclipse.fordiac.ide.gef.annotation.AnnotableGraphicalEditPart;
 import org.eclipse.fordiac.ide.gef.annotation.FordiacAnnotationUtil;
 import org.eclipse.fordiac.ide.gef.annotation.GraphicalAnnotationModelEvent;
 import org.eclipse.fordiac.ide.gef.annotation.GraphicalAnnotationStyles;
-import org.eclipse.fordiac.ide.gef.annotation.GraphicalAnnotationStyles.AnnotationCompoundBorder;
-import org.eclipse.fordiac.ide.gef.annotation.GraphicalAnnotationStyles.AnnotationFeedbackBorder;
+import org.eclipse.fordiac.ide.gef.annotation.GraphicalAnnotationStyles.AnnotationBorder;
 import org.eclipse.fordiac.ide.gef.figures.ValueToolTipFigure;
 import org.eclipse.fordiac.ide.gef.policies.ValueEditPartChangeEditPolicy;
 import org.eclipse.fordiac.ide.gef.preferences.DiagramPreferences;
@@ -71,7 +69,7 @@ public class ValueEditPart extends AbstractGraphicalEditPart implements NodeEdit
 
 	private static int maxWidth = -1;
 
-	private static int getMaxWidth() {
+	public static int getMaxWidth() {
 		if (-1 == maxWidth) {
 			final IPreferenceStore pf = Activator.getDefault().getPreferenceStore();
 			final int maxLabelSize = pf.getInt(DiagramPreferences.MAX_VALUE_LABEL_SIZE);
@@ -93,8 +91,7 @@ public class ValueEditPart extends AbstractGraphicalEditPart implements NodeEdit
 		getModel().eAdapters().add(contentAdapter);
 		// also add the adapter to parent to refresh the init value after type change
 		getModel().getParentIE().eAdapters().add(contentAdapter);
-		final Object part = getViewer().getEditPartRegistry().get(getModel().getParentIE());
-		if (part instanceof final InterfaceEditPart iep) {
+		if (getViewer().getEditPartForModel(getModel().getParentIE()) instanceof final InterfaceEditPart iep) {
 			parentPart = iep;
 			final IFigure parentFigure = parentPart.getFigure();
 			parentFigure.addAncestorListener(new AncestorListener() {
@@ -242,8 +239,7 @@ public class ValueEditPart extends AbstractGraphicalEditPart implements NodeEdit
 	}
 
 	private boolean valueHasAnnotation() {
-		final Border border = getFigure().getBorder();
-		return border instanceof AnnotationFeedbackBorder || border instanceof AnnotationCompoundBorder;
+		return getFigure().getBorder() instanceof AnnotationBorder;
 	}
 
 	protected void updateDefaultValue(final String value) {

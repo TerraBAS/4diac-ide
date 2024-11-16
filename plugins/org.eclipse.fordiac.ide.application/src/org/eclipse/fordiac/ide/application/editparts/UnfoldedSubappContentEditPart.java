@@ -17,13 +17,19 @@
 
 package org.eclipse.fordiac.ide.application.editparts;
 
+import org.eclipse.draw2d.Figure;
+import org.eclipse.draw2d.IFigure;
+import org.eclipse.draw2d.XYLayout;
+import org.eclipse.draw2d.geometry.Insets;
 import org.eclipse.draw2d.geometry.Point;
+import org.eclipse.draw2d.geometry.Rectangle;
 import org.eclipse.emf.common.notify.Adapter;
 import org.eclipse.emf.common.notify.Notification;
-import org.eclipse.emf.common.notify.Notifier;
 import org.eclipse.emf.ecore.util.EContentAdapter;
 import org.eclipse.fordiac.ide.application.commands.ResizeGroupOrSubappCommand;
+import org.eclipse.fordiac.ide.application.policies.AbstractContainerCreateInstanceDirectEditPolicy;
 import org.eclipse.fordiac.ide.application.policies.SubAppContentLayoutEditPolicy;
+import org.eclipse.fordiac.ide.model.CoordinateConverter;
 import org.eclipse.fordiac.ide.model.commands.create.AbstractCreateFBNetworkElementCommand;
 import org.eclipse.fordiac.ide.model.libraryElement.LibraryElementPackage;
 import org.eclipse.fordiac.ide.model.libraryElement.SubApp;
@@ -50,7 +56,7 @@ public class UnfoldedSubappContentEditPart extends AbstractContainerContentEditP
 	public void activate() {
 		if (!isActive()) {
 			super.activate();
-			((Notifier) getModel()).eAdapters().add(adapter);
+			getModel().eAdapters().add(adapter);
 		}
 	}
 
@@ -58,7 +64,7 @@ public class UnfoldedSubappContentEditPart extends AbstractContainerContentEditP
 	public void deactivate() {
 		if (isActive()) {
 			super.deactivate();
-			((Notifier) getModel()).eAdapters().remove(adapter);
+			getModel().eAdapters().remove(adapter);
 		}
 	}
 
@@ -72,13 +78,47 @@ public class UnfoldedSubappContentEditPart extends AbstractContainerContentEditP
 		super.createEditPolicies();
 		// Add policy to handle drag&drop of fbs
 		installEditPolicy(EditPolicy.LAYOUT_ROLE, new SubAppContentLayoutEditPolicy());
-		installEditPolicy(EditPolicy.DIRECT_EDIT_ROLE, new AbstractCreateInstanceDirectEditPolicy() {
+		installEditPolicy(EditPolicy.DIRECT_EDIT_ROLE, new AbstractContainerCreateInstanceDirectEditPolicy() {
 			@Override
 			protected Command getElementCreateCommand(final TypeEntry value, final Point refPoint) {
 				return new ResizeGroupOrSubappCommand(getHost(), AbstractCreateFBNetworkElementCommand
 						.createCreateCommand(value, getModel(), refPoint.x, refPoint.y));
 			}
 		});
+	}
+
+	@Override
+	protected IFigure createFigure() {
+		final IFigure figure = new Figure() {
+			Insets offsetInset = new Insets();
+
+			@Override
+			public void setBounds(final Rectangle rect) {
+				final Rectangle copy = rect.getCopy();
+				final Rectangle clientArea = getParent().getClientArea();
+				final int maxAvailableHeight = clientArea.height - (rect.y - clientArea.y);
+				// expand content to the available subapp size
+				copy.height = Math.max(rect.height, maxAvailableHeight);
+
+				final int lineHeight = (int) CoordinateConverter.INSTANCE.getLineHeight();
+				// ensure that the content is aligned on the grid in x direction. We have to do
+				// that here to compensate for different interface bar widths and also to
+				// compensate changing interface bar widths.
+				final int offset = lineHeight - copy.x % lineHeight;
+				offsetInset.left = offset;
+				offsetInset.right = offset;
+				super.setBounds(copy);
+			}
+
+			@Override
+			public Insets getInsets() {
+				return offsetInset;
+			}
+		};
+
+		figure.setOpaque(true);
+		figure.setLayoutManager(new XYLayout());
+		return figure;
 	}
 
 	@Override

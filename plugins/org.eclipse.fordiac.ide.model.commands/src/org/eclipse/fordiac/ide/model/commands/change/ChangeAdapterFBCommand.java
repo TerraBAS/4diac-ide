@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008, 2023 Profactor GmbH, fortiss GmbH,
+ * Copyright (c) 2008, 2024 Profactor GmbH, fortiss GmbH,
  *                          Johannes Kepler University Linz
  *                          Martin Erich Jobst
  *
@@ -25,8 +25,7 @@ import org.eclipse.fordiac.ide.model.libraryElement.LibraryElementFactory;
 public final class ChangeAdapterFBCommand extends UpdateFBTypeCommand {
 
 	public ChangeAdapterFBCommand(final AdapterDeclaration adpDecl) {
-		super(adpDecl.getAdapterNetworkFB(), null);
-		setEntry(adpDecl.getType().getTypeEntry());
+		super(adpDecl.getAdapterFB(), null);
 	}
 
 	@Override
@@ -43,23 +42,30 @@ public final class ChangeAdapterFBCommand extends UpdateFBTypeCommand {
 
 	@Override
 	public void execute() {
+		// use the type of the adapterDecl for changing the adapterfbs type
+		setEntry(getOldElement().getAdapterDecl().getType().getTypeEntry());
 		super.execute();
-		setAdapterNetworkFB((AdapterFB) newElement);
+		setAdapterFB((AdapterFB) newElement);
 	}
 
 	@Override
 	public void undo() {
 		super.undo();
-		setAdapterNetworkFB((AdapterFB) oldElement);
+		setAdapterFB((AdapterFB) oldElement);
 	}
 
 	@Override
 	public void redo() {
 		super.redo();
-		setAdapterNetworkFB((AdapterFB) newElement);
+		setAdapterFB((AdapterFB) newElement);
 	}
 
-	private static void setAdapterNetworkFB(final AdapterFB fb) {
-		fb.getAdapterDecl().setAdapterNetworkFB(fb);
+	private static void setAdapterFB(final AdapterFB fb) {
+		fb.getAdapterDecl().setAdapterFB(fb);
+	}
+
+	@Override
+	public AdapterFB getOldElement() {
+		return (AdapterFB) super.getOldElement();
 	}
 }

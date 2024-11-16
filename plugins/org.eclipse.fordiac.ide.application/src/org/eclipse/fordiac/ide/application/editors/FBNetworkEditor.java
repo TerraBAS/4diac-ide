@@ -1,6 +1,6 @@
 /*******************************************************************************
- * Copyright (c) 2008, 2021 Profactor GmbH, TU Wien ACIN, AIT, fortiss GmbH,
- *                          Johannes Kepler University,
+ * Copyright (c) 2008, 2024 Profactor GmbH, TU Wien ACIN, AIT, fortiss GmbH,
+ *                          Johannes Kepler University Linz,
  *                          Primetals Technologies Germany GmbH
  *
  * This program and the accompanying materials are made available under the
@@ -23,6 +23,7 @@ package org.eclipse.fordiac.ide.application.editors;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.draw2d.IFigure;
+import org.eclipse.draw2d.geometry.Dimension;
 import org.eclipse.fordiac.ide.application.actions.CopyEditPartsAction;
 import org.eclipse.fordiac.ide.application.actions.CutEditPartsAction;
 import org.eclipse.fordiac.ide.application.actions.DeleteFBNetworkAction;
@@ -39,6 +40,7 @@ import org.eclipse.fordiac.ide.application.utilities.FbTypeTemplateTransferDropT
 import org.eclipse.fordiac.ide.gef.DiagramEditorWithFlyoutPalette;
 import org.eclipse.fordiac.ide.gef.preferences.PaletteFlyoutPreferences;
 import org.eclipse.fordiac.ide.gef.tools.AdvancedPanningSelectionTool;
+import org.eclipse.fordiac.ide.model.CoordinateConverter;
 import org.eclipse.fordiac.ide.model.libraryElement.AutomationSystem;
 import org.eclipse.fordiac.ide.model.libraryElement.FBNetwork;
 import org.eclipse.fordiac.ide.model.typelibrary.TypeLibrary;
@@ -48,6 +50,7 @@ import org.eclipse.gef.ContextMenuProvider;
 import org.eclipse.gef.EditPart;
 import org.eclipse.gef.EditPartFactory;
 import org.eclipse.gef.LayerConstants;
+import org.eclipse.gef.SnapToGrid;
 import org.eclipse.gef.commands.CommandStack;
 import org.eclipse.gef.editparts.ScalableFreeformRootEditPart;
 import org.eclipse.gef.editparts.ZoomManager;
@@ -84,7 +87,7 @@ public class FBNetworkEditor extends DiagramEditorWithFlyoutPalette implements I
 
 	@Override
 	protected ScalableFreeformRootEditPart createRootEditPart() {
-		return new FBNetworkRootEditPart(getModel(), getTypeLibrary(), getSite(), getActionRegistry());
+		return new FBNetworkRootEditPart(getModel(), getSite(), getActionRegistry());
 	}
 
 	@Override
@@ -136,6 +139,10 @@ public class FBNetworkEditor extends DiagramEditorWithFlyoutPalette implements I
 				.getRootEditPart();
 		final IFigure connectionLayer = rootEP.getLayer(LayerConstants.CONNECTION_LAYER);
 		connectionLayer.setClippingStrategy(new FBNetworkConnectionLayerClippingStrategy(getGraphicalViewer()));
+
+		getGraphicalViewer().setProperty(SnapToGrid.PROPERTY_GRID_SPACING,
+				new Dimension((int) CoordinateConverter.INSTANCE.getLineHeight(),
+						(int) CoordinateConverter.INSTANCE.getLineHeight()));
 	}
 
 	@Override
@@ -233,7 +240,7 @@ public class FBNetworkEditor extends DiagramEditorWithFlyoutPalette implements I
 	}
 
 	public void selectElement(final Object element) {
-		final EditPart editPart = (EditPart) getGraphicalViewer().getEditPartRegistry().get(element);
+		final EditPart editPart = getGraphicalViewer().getEditPartForModel(element);
 		if (null != editPart) {
 			getGraphicalViewer().flush();
 			getGraphicalViewer().selectAndRevealEditPart(editPart);

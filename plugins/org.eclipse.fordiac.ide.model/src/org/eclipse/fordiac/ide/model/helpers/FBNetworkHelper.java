@@ -1,6 +1,7 @@
 /*******************************************************************************
- * Copyright (c) 2019 - 2020 Johannes Kepler University Linz
- * 				 2021 Primetals Technologies Austria GmbH
+ * Copyright (c) 2019, 2024 Johannes Kepler University Linz
+ *                          Primetals Technologies Austria GmbH
+ *                          Martin Erich Jobst
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -12,15 +13,18 @@
  *   Alois Zoitl - initial API and implementation and/or initial documentation
  *   Bianca Wiesmayr - added positioning calculations
  *   Daniel Lindhuber - added recursive type insertion check
+ *   Martin Jobst - fix copying of connections with var-in-out pins
  *******************************************************************************/
 package org.eclipse.fordiac.ide.model.helpers;
 
 import java.text.MessageFormat;
 import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.emf.common.util.BasicEList;
@@ -30,7 +34,6 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.fordiac.ide.model.Messages;
 import org.eclipse.fordiac.ide.model.annotations.MappingAnnotations;
 import org.eclipse.fordiac.ide.model.libraryElement.AdapterConnection;
-import org.eclipse.fordiac.ide.model.libraryElement.AdapterDeclaration;
 import org.eclipse.fordiac.ide.model.libraryElement.AdapterFB;
 import org.eclipse.fordiac.ide.model.libraryElement.Application;
 import org.eclipse.fordiac.ide.model.libraryElement.AutomationSystem;
@@ -54,6 +57,7 @@ import org.eclipse.fordiac.ide.model.libraryElement.MappingTarget;
 import org.eclipse.fordiac.ide.model.libraryElement.Position;
 import org.eclipse.fordiac.ide.model.libraryElement.Resource;
 import org.eclipse.fordiac.ide.model.libraryElement.SubApp;
+import org.eclipse.fordiac.ide.model.libraryElement.VarDeclaration;
 import org.eclipse.fordiac.ide.model.typelibrary.ErrorTypeEntry;
 import org.eclipse.fordiac.ide.ui.errormessages.ErrorMessenger;
 import org.eclipse.gef.EditPart;
@@ -75,9 +79,42 @@ public final class FBNetworkHelper {
 	public static FBNetwork copyFBNetWork(final FBNetwork srcNetwork, final InterfaceList destInterface) {
 		final FBNetwork dstNetwork = LibraryElementFactory.eINSTANCE.createFBNetwork();
 		dstNetwork.getNetworkElements().addAll(EcoreUtil.copyAll(srcNetwork.getNetworkElements()));
+		createConnections(srcNetwork, dstNetwork, destInterface);
+		return dstNetwork;
+	}
+
+	/**
+	 * Take the src FBNetwork from a composite FB and copy it into a new network.
+	 *
+	 * @param srcNetwork    the FBNetwork to copy
+	 * @param destInterface if not null the interface of the component the new
+	 *                      FBNetwork should be contained in
+	 * @return the copied FBNetwork
+	 */
+	public static FBNetwork copyCFBNetWork(final FBNetwork srcNetwork, final InterfaceList destInterface) {
+		final FBNetwork dstNetwork = LibraryElementFactory.eINSTANCE.createFBNetwork();
+
+		final FBNetworkAdapterLessCopier copier = new FBNetworkAdapterLessCopier();
+		final Collection<FBNetworkElement> result = copier.copyAll(srcNetwork.getNetworkElements());
+		copier.copyReferences();
+		dstNetwork.getNetworkElements().addAll(result);
+
 		checkForAdapterFBs(dstNetwork, destInterface);
 		createConnections(srcNetwork, dstNetwork, destInterface);
 		return dstNetwork;
+	}
+
+	private static class FBNetworkAdapterLessCopier extends EcoreUtil.Copier {
+		private static final long serialVersionUID = 1L;
+
+		@Override
+		public EObject copy(final EObject eObject) {
+			// copy all FBNetworkElements except adapter FBs
+			if (!(eObject instanceof AdapterFB)) {
+				return super.copy(eObject);
+			}
+			return null;
+		}
 	}
 
 	/**
@@ -93,7 +130,6 @@ public final class FBNetworkHelper {
 			final InterfaceList destInterface) {
 		final FBNetwork dstNetwork = LibraryElementFactory.eINSTANCE.createFBNetwork();
 		createResourceTypeFBs(resourceTypeNetwork.getNetworkElements(), dstNetwork);
-		checkForAdapterFBs(dstNetwork, destInterface);
 		createConnections(resourceTypeNetwork, dstNetwork, destInterface);
 		return dstNetwork;
 	}
@@ -115,14 +151,8 @@ public final class FBNetworkHelper {
 	}
 
 	private static void checkForAdapterFBs(final FBNetwork dstNetwork, final InterfaceList destInterface) {
-		for (final FBNetworkElement elem : dstNetwork.getNetworkElements()) {
-			if (elem instanceof final AdapterFB adapterfb) {
-				final AdapterDeclaration adapter = destInterface.getAdapter(elem.getName());
-				if (null != adapter) {
-					adapterfb.setAdapterDecl(adapter);
-				}
-			}
-		}
+		Stream.concat(destInterface.getPlugs().stream(), destInterface.getSockets().stream())
+				.forEach(adp -> dstNetwork.getNetworkElements().add(adp.getAdapterFB()));
 	}
 
 	private static void createConnections(final FBNetwork srcNetwork, final FBNetwork dstNetwork,
@@ -151,16 +181,23 @@ public final class FBNetworkHelper {
 		return newConn;
 	}
 
-	private static IInterfaceElement getInterfaceElement(final IInterfaceElement ie, final InterfaceList typeInterface,
+	private static IInterfaceElement getInterfaceElement(final IInterfaceElement ie, final InterfaceList destInterface,
 			final FBNetwork dstNetwork, final FBNetwork srcNetwork) {
-		if ((null == ie.getFBNetworkElement()) || !srcNetwork.equals(ie.getFBNetworkElement().getFbNetwork())) {
-			return typeInterface.getInterfaceElement(ie.getName());
+		final IInterfaceElement interfaceElement;
+		if (ie.getFBNetworkElement() == null || srcNetwork != ie.getFBNetworkElement().getFbNetwork()) {
+			interfaceElement = destInterface.getInterfaceElement(ie.getName());
+		} else {
+			final FBNetworkElement element = dstNetwork.getElementNamed(ie.getFBNetworkElement().getName());
+			if (null == element) {
+				return null;
+			}
+			interfaceElement = element.getInterfaceElement(ie.getName());
 		}
-		final FBNetworkElement element = dstNetwork.getElementNamed(ie.getFBNetworkElement().getName());
-		if (null == element) {
-			return null;
+		if (interfaceElement instanceof final VarDeclaration varDeclaration && varDeclaration.isInOutVar()
+				&& varDeclaration.isIsInput() != ie.isIsInput()) {
+			return varDeclaration.getInOutVarOpposite();
 		}
-		return element.getInterfaceElement(ie.getName());
+		return interfaceElement;
 	}
 
 	/**
@@ -246,8 +283,8 @@ public final class FBNetworkHelper {
 				.getActivePart();
 		final GraphicalViewer viewer = part.getAdapter(GraphicalViewer.class);
 		if (viewer != null) {
-			final List<EditPart> eps = elements.stream().map(el -> (EditPart) viewer.getEditPartRegistry().get(el))
-					.filter(Objects::nonNull).toList();
+			final List<EditPart> eps = elements.stream().map(viewer::getEditPartForModel).filter(Objects::nonNull)
+					.toList();
 			if (eps != null) {
 				viewer.setSelection(new StructuredSelection(eps));
 			}
