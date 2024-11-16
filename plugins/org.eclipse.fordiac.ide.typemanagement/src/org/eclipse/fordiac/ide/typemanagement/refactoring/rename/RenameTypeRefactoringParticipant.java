@@ -31,8 +31,6 @@ import org.eclipse.fordiac.ide.model.search.types.IEC61499ElementSearch;
 import org.eclipse.fordiac.ide.model.typelibrary.TypeEntry;
 import org.eclipse.fordiac.ide.model.typelibrary.TypeLibraryManager;
 import org.eclipse.fordiac.ide.typemanagement.Messages;
-import org.eclipse.fordiac.ide.typemanagement.refactoring.UpdateFBInstanceChange;
-import org.eclipse.fordiac.ide.typemanagement.refactoring.UpdateFBTypeInterfaceChange;
 import org.eclipse.fordiac.ide.typemanagement.refactoring.UpdateInstancesChange;
 import org.eclipse.fordiac.ide.typemanagement.refactoring.UpdateTypeEntryChange;
 import org.eclipse.ltk.core.refactoring.Change;
@@ -147,28 +145,21 @@ public class RenameTypeRefactoringParticipant extends RenameParticipant {
 		return parentChange;
 	}
 
-	private static Change createSubChange(final VarDeclaration varDecl, final DataTypeEntry dataTypeEntry,
-			final Set<EObject> rootElements) {
-		if (varDecl.getFBNetworkElement() != null) {
-			if (rootElements.add(varDecl.getFBNetworkElement())) {
-				return new UpdateFBInstanceChange(varDecl.getFBNetworkElement(), dataTypeEntry);
-			}
-		} else {
-			final EObject rootContainer = EcoreUtil.getRootContainer(varDecl);
-			if (rootElements.add(rootContainer)) {
-				if (rootContainer instanceof final StructuredType stElement) {
-					final CompositeChange change = new CompositeChange(MessageFormat.format(
-							Messages.Refactoring_AffectedStruct, stElement.getName(), dataTypeEntry.getTypeName()));
-					change.add(new UpdateStructDataTypeMemberVariableChange(varDecl));
-					createStructChanges((DataTypeEntry) stElement.getTypeEntry(), change);
-					return change;
-				}
-				if (rootContainer instanceof final FBType fbType
-						&& dataTypeEntry.getType() instanceof final StructuredType type) {
-					return new UpdateFBTypeInterfaceChange(fbType, type);
-				}
-			}
-		}
-		return null;
-	}
+	/*
+	 * private static Change createSubChange(final VarDeclaration varDecl, final
+	 * DataTypeEntry dataTypeEntry, final Set<EObject> rootElements) { if
+	 * (varDecl.getFBNetworkElement() != null) { if
+	 * (rootElements.add(varDecl.getFBNetworkElement())) { return new
+	 * UpdateFBInstanceChange(varDecl.getFBNetworkElement(), dataTypeEntry); } }
+	 * else { final EObject rootContainer = EcoreUtil.getRootContainer(varDecl); if
+	 * (rootElements.add(rootContainer)) { if (rootContainer instanceof final
+	 * StructuredType stElement) { final CompositeChange change = new
+	 * CompositeChange(MessageFormat.format( Messages.Refactoring_AffectedStruct,
+	 * stElement.getName(), dataTypeEntry.getTypeName())); change.add(new
+	 * UpdateStructDataTypeMemberVariableChange(varDecl));
+	 * createStructChanges((DataTypeEntry) stElement.getTypeEntry(), change); return
+	 * change; } if (rootContainer instanceof final FBType fbType &&
+	 * dataTypeEntry.getType() instanceof final StructuredType type) { return new
+	 * UpdateFBTypeInterfaceChange(fbType, type); } } } return null; }
+	 */
 }
