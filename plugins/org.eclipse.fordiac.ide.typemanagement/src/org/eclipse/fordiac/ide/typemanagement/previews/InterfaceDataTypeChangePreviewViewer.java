@@ -79,17 +79,18 @@ public class InterfaceDataTypeChangePreviewViewer implements IChangePreviewViewe
 		final TypeEntry oldTypeEntry = change.getOldTypeEntry();
 		final FBType originalFbType = (FBType) change.getModifiedElement();
 		final FBType refactoredFbType = EcoreUtil.copy(originalFbType);
+		final String newName = change.getNewName();
 
 		refactoredFbType.getInterfaceList().getInputs()
 				.filter(var -> var.getTypeName().equals(oldTypeEntry.getTypeName())).forEach(var -> {
 					var.setType(EcoreUtil.copy(var.getType()));
-					var.getType().setName("TODO");
+					var.getType().setName(newName);
 				});
 
 		refactoredFbType.getInterfaceList().getOutputs()
 				.filter(var -> var.getTypeName().equals(oldTypeEntry.getTypeName())).forEach(var -> {
 					var.setType(EcoreUtil.copy(var.getType()));
-					var.getType().setName("TODO");
+					var.getType().setName(newName);
 				});
 
 		final Comparison comparison = this.emfCompare

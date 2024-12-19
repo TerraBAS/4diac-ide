@@ -34,11 +34,13 @@ import org.eclipse.ltk.core.refactoring.CompositeChange;
 public class FbTypeChange extends CompositeChange {
 
 	private final IFile file;
+	private final String newName;
 	private final TypeEntry oldTypeEntry;
 
-	public FbTypeChange(final IFile targetFile) {
+	public FbTypeChange(final IFile targetFile, final String newName) {
 		super(Messages.Refactoring_AffectedFuctionBlock);
 		this.file = targetFile;
+		this.newName = newName;
 		this.oldTypeEntry = TypeLibraryManager.INSTANCE.getTypeEntryForFile(this.file);
 		buildChanges();
 	}
@@ -60,7 +62,8 @@ public class FbTypeChange extends CompositeChange {
 				functionBlockChangeMap.put(label, new HashSet<>());
 			}
 
-			functionBlockChangeMap.get(label).add(new InterfaceDataTypeChange(functionBlockType, oldTypeEntry));
+			functionBlockChangeMap.get(label)
+					.add(new InterfaceDataTypeChange(functionBlockType, oldTypeEntry, newName));
 		});
 
 		return functionBlockChangeMap.entrySet().stream().map(entry -> {

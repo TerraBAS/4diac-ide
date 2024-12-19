@@ -32,13 +32,14 @@ public class InterfaceDataTypeChange extends Change {
 
 	private final FBType fbType;
 	private final TypeEntry oldTypeEntry;
+	private final String newName;
 	private final List<String> inputPinNames;
 	private final List<String> outputPinNames;
 
-	public InterfaceDataTypeChange(final FBType fbType, final TypeEntry oldTypeEntry) {
+	public InterfaceDataTypeChange(final FBType fbType, final TypeEntry oldTypeEntry, final String newName) {
 
 		this.fbType = fbType;
-
+		this.newName = newName;
 		this.oldTypeEntry = oldTypeEntry;
 		this.inputPinNames = fbType.getInterfaceList().getInputs()
 				.filter(input -> input.getTypeName().equals(oldTypeEntry.getTypeName())).map(IInterfaceElement::getName)
@@ -87,6 +88,10 @@ public class InterfaceDataTypeChange extends Change {
 
 	public TypeEntry getOldTypeEntry() {
 		return oldTypeEntry;
+	}
+
+	public String getNewName() {
+		return newName;
 	}
 
 }

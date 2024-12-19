@@ -110,7 +110,7 @@ public class RenameTypeRefactoringParticipant extends RenameParticipant {
 		final Change typeLibraryChange = new UpdateTypeEntryChange(file, typeEntry, newName, oldName);
 		parentChange.add(typeLibraryChange);
 
-		final CompositeChange fbTypeChange = new FbTypeChange(file);
+		final CompositeChange fbTypeChange = new FbTypeChange(file, newName);
 		if (fbTypeChange.getChildren().length != 0) {
 			parentChange.add(fbTypeChange);
 		}
