@@ -37,6 +37,7 @@ public class ApplicationEditor extends FBNetworkEditor {
 
 	@Override
 	public void setInput(final IEditorInput input) {
+		System.out.println("ApplicationEditorInput called");
 		if (input instanceof final ApplicationEditorInput appInput) {
 			final Application app = appInput.getContent();
 			setModel(app.getFBNetwork());

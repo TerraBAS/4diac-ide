@@ -99,6 +99,8 @@ public class FBNetworkEditor extends DiagramEditorWithFlyoutPalette implements I
 	 * Instantiates a new fB network editor.
 	 */
 	public FBNetworkEditor() {
+		System.out.println("FBNetworkEditor called");
+
 		// empty constructor
 	}
 

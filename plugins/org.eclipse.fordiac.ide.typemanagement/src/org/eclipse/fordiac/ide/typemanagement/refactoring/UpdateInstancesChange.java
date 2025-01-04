@@ -15,6 +15,7 @@
  *******************************************************************************/
 package org.eclipse.fordiac.ide.typemanagement.refactoring;
 
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -40,14 +41,12 @@ public class UpdateInstancesChange extends Change {
 
 	private final FBNetworkElement instance;
 	private final TypeEntry typeEntry;
+	private final IProject project;
 
-	public UpdateInstancesChange(final FBNetworkElement instance, final TypeEntry typeEntry) {
+	public UpdateInstancesChange(final FBNetworkElement instance, final TypeEntry typeEntry, final IProject project) {
 		this.instance = instance;
 		this.typeEntry = typeEntry;
-	}
-
-	public UpdateInstancesChange(final FBNetworkElement instance) {
-		this(instance, null);
+		this.project = project;
 	}
 
 	@Override
@@ -91,6 +90,10 @@ public class UpdateInstancesChange extends Change {
 	@Override
 	public Object getModifiedElement() {
 		return null;
+	}
+
+	public IProject getProject() {
+		return project;
 	}
 
 }

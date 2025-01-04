@@ -34,6 +34,7 @@ public class FBInterfaceEditPartFactory extends Abstract4diacEditPartFactory {
 
 	@Override
 	protected EditPart getPartForElement(final EditPart context, final Object modelElement) {
+		System.out.println("Loaded editor for:" + modelElement.getClass());
 		if (modelElement instanceof FBType && context == null) {
 			return new FBTypeRootEditPart();
 		}

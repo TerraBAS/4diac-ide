@@ -1857,4 +1857,18 @@
             type="java.lang.Object">
       </propertyTester>
   </extension>
+  <extension
+        point="org.eclipse.ltk.ui.refactoring.changePreviewViewers">
+     <changePreviewViewer
+           class="org.eclipse.fordiac.ide.applications.previews.ProjectChangePreviewViewer"
+           id="org.eclipse.fordiac.ide.applications.previews.ProjectChangePreviewViewer">
+        <enablement>
+           <or>
+              <instanceof
+                    value="org.eclipse.fordiac.ide.typemanagement.refactoring.UpdateInstancesChange">
+              </instanceof>
+           </or>
+        </enablement>
+     </changePreviewViewer>
+  </extension>
 </plugin>

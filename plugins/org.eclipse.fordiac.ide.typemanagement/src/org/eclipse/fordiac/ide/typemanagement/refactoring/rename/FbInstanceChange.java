@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IProject;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.fordiac.ide.model.libraryElement.impl.BasicFBTypeImpl;
 import org.eclipse.fordiac.ide.model.libraryElement.impl.FBImpl;
@@ -50,21 +51,22 @@ public class FbInstanceChange extends CompositeChange {
 		buildSubChanges().forEach(this::add);
 	}
 
-	private List<CompositeChange> buildSubChanges() {
-		final Map<String, Set<Change>> affectedStructChanges = new HashMap<>();
+	private List<ProjectFbInstanceChange> buildSubChanges() {
+		final Map<IProject, Set<Change>> affectedStructChanges = new HashMap<>();
 
 		searchAffectedStructuredType().forEach(impactedStructuredType -> {
-			final String label = impactedStructuredType.getTypeEntry().getFile().getProject().getName();
+			final IProject project = impactedStructuredType.getTypeEntry().getFile().getProject();
 
-			if (!affectedStructChanges.containsKey(label)) {
-				affectedStructChanges.put(label, new HashSet<>());
+			if (!affectedStructChanges.containsKey(project)) {
+				affectedStructChanges.put(project, new HashSet<>());
 			}
 
-			affectedStructChanges.get(label).add(new UpdateInstancesChange(impactedStructuredType, oldTypeEntry));
+			affectedStructChanges.get(project)
+					.add(new UpdateInstancesChange(impactedStructuredType, oldTypeEntry, project));
 		});
 
 		return affectedStructChanges.entrySet().stream().map(entry -> {
-			final CompositeChange fbChange = new CompositeChange(entry.getKey());
+			final ProjectFbInstanceChange fbChange = new ProjectFbInstanceChange(file, entry.getKey());
 
 			entry.getValue().stream().forEach(fbChange::add);
 

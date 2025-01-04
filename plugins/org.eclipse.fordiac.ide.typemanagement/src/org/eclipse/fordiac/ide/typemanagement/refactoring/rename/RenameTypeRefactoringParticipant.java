@@ -137,7 +137,8 @@ public class RenameTypeRefactoringParticipant extends RenameParticipant {
 		final IEC61499ElementSearch search = new BlockTypeInstanceSearch(typeEntry);
 		final List<? extends EObject> searchResults = search.performSearch();
 		searchResults.stream().filter(FBNetworkElement.class::isInstance).map(FBNetworkElement.class::cast)
-				.map(fbn -> new UpdateInstancesChange(fbn, typeEntry)).forEach(change::add);
+				.map(fbn -> new UpdateInstancesChange(fbn, typeEntry, typeEntry.getFile().getProject()))
+				.forEach(change::add);
 
 		if (!searchResults.isEmpty()) {
 			parentChange.add(change);
