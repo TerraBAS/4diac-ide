@@ -13,10 +13,15 @@
 package org.eclipse.fordiac.ide.fbtypeeditor.previews;
 
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.draw2d.ColorConstants;
 import org.eclipse.draw2d.FigureCanvas;
+import org.eclipse.draw2d.IFigure;
+import org.eclipse.draw2d.Polyline;
+import org.eclipse.draw2d.geometry.Point;
 import org.eclipse.draw2d.geometry.Rectangle;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.fordiac.ide.fbtypeeditor.editparts.FBInterfaceEditPartFactory;
+import org.eclipse.fordiac.ide.fbtypeeditor.editparts.InterfaceEditPart;
 import org.eclipse.fordiac.ide.model.libraryElement.FBType;
 import org.eclipse.fordiac.ide.model.typelibrary.TypeEntry;
 import org.eclipse.fordiac.ide.model.ui.editors.AdvancedScrollingGraphicalViewer;
@@ -39,6 +44,8 @@ import org.eclipse.swt.widgets.ScrollBar;
 public class InterfaceDataTypeChangePreviewViewer implements IChangePreviewViewer {
 
 	private SashForm control;
+	private Composite parent;
+
 	private AdvancedScrollingGraphicalViewer graphicalViewerLeft;
 	private AdvancedScrollingGraphicalViewer graphicalViewerRight;
 
@@ -46,6 +53,16 @@ public class InterfaceDataTypeChangePreviewViewer implements IChangePreviewViewe
 	public void createControl(final Composite parent) {
 		// Ensure parent layout is set correctly
 		parent.setLayout(new GridLayout(1, false));
+
+		this.parent = parent;
+
+		resetControl();
+	}
+
+	private void resetControl() {
+		if (control != null) {
+			control.dispose();
+		}
 
 		control = new SashForm(parent, SWT.VERTICAL);
 		control.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
@@ -70,7 +87,6 @@ public class InterfaceDataTypeChangePreviewViewer implements IChangePreviewViewe
 
 		// Force parent layout
 		parent.layout(true, true);
-
 	}
 
 	@Override
@@ -89,6 +105,7 @@ public class InterfaceDataTypeChangePreviewViewer implements IChangePreviewViewe
 		final String newName = change.getNewName();
 		final TypeEntry oldTypeEntry = change.getOldTypeEntry();
 		final FBType originalFbType = (FBType) change.getModifiedElement();
+
 		final FBType refactoredFbType = EcoreUtil.copy(originalFbType);
 
 		refactoredFbType.getInterfaceList().getInputs()
@@ -117,6 +134,8 @@ public class InterfaceDataTypeChangePreviewViewer implements IChangePreviewViewe
 
 		};
 
+		resetControl();
+
 		graphicalViewerLeft.setRootEditPart(new ScalableRootEditPart());
 		graphicalViewerLeft.setEditPartFactory(
 				new FBInterfaceEditPartFactory(mockEditor, change.getOldTypeEntry().getTypeLibrary()));
@@ -141,6 +160,8 @@ public class InterfaceDataTypeChangePreviewViewer implements IChangePreviewViewe
 				new Rectangle(400, 50, -1, -1));
 
 		// todo remove grid
+
+		drawRedRectangleForElement(graphicalViewerLeft, oldTypeEntry.getTypeName());
 
 	}
 
@@ -173,6 +194,95 @@ public class InterfaceDataTypeChangePreviewViewer implements IChangePreviewViewe
 					}
 				});
 			}
+		}
+	}
+
+	private void drawRedRectangleForElement(final AdvancedScrollingGraphicalViewer viewer,
+			final String originalTypeName) {
+		if (viewer != null) {
+			// Iterate over all entries in the EditPartRegistry
+			viewer.getEditPartRegistry().forEach((key, val) -> {
+
+				// Check if the EditPart is an instance of InterfaceEditPart
+				// Check if the InterfaceEditPart's model matches the originalTypeName
+				if ((val instanceof final InterfaceEditPart part)
+						&& part.getCastedModel().getFullTypeName().equals(originalTypeName)) {
+					// We found a matching InterfaceEditPart
+					System.out.println("Found matching InterfaceEditPart: " + originalTypeName);
+
+					// Get the corresponding figure for the EditPart
+					final IFigure figure = part.getFigure();
+					if (figure != null) {
+						// Ensure layout is complete before accessing bounds
+						viewer.getControl().getDisplay().asyncExec(() -> {
+							// Access the bounds after ensuring the figure is laid out
+							final Rectangle bounds = figure.getBounds();
+							System.out.println("Figure bounds (local): " + bounds.x + ", " + bounds.y);
+
+							// Translate the bounds to absolute coordinates
+							figure.translateToAbsolute(bounds);
+							System.out.println("Figure bounds (absolute): " + bounds.x + ", " + bounds.y);
+
+							// Create the red border around the figure
+							createRedBorder(viewer, bounds);
+
+							// Add the red border to the canvas (drawing layer)
+							final FigureCanvas canvas = (FigureCanvas) viewer.getControl();
+							if (canvas != null) {
+								// Optionally scroll the canvas to the position of the element
+								System.out.println("Scroll to " + bounds.x + "X and " + bounds.y + "Y");
+								canvas.scrollTo(bounds.x - 10, bounds.y - 10); // Adding a small offset to make sure
+																				// it's visible
+							}
+						});
+					} else {
+						System.out.println("Figure for InterfaceEditPart is null.");
+					}
+				}
+			});
+		}
+	}
+
+	private void createRedBorder(final AdvancedScrollingGraphicalViewer viewer, final Rectangle bounds) {
+		final int padding = 2;
+
+		// Top line with padding
+		final Polyline topLine = new Polyline();
+		topLine.addPoint(new Point(bounds.x - padding, bounds.y - padding)); // Apply padding
+		topLine.addPoint(new Point(bounds.x + bounds.width + padding, bounds.y - padding)); // Apply padding
+		topLine.setForegroundColor(ColorConstants.red);
+		topLine.setLineWidth(2); // Thicker line width
+
+		// Bottom line with padding
+		final Polyline bottomLine = new Polyline();
+		bottomLine.addPoint(new Point(bounds.x - padding, bounds.y + bounds.height + padding)); // Apply padding
+		bottomLine.addPoint(new Point(bounds.x + bounds.width + padding, bounds.y + bounds.height + padding)); // Apply
+																												// padding
+		bottomLine.setForegroundColor(ColorConstants.red);
+		bottomLine.setLineWidth(2); // Thicker line width
+
+		// Left line with padding
+		final Polyline leftLine = new Polyline();
+		leftLine.addPoint(new Point(bounds.x - padding, bounds.y - padding)); // Apply padding
+		leftLine.addPoint(new Point(bounds.x - padding, bounds.y + bounds.height + padding)); // Apply padding
+		leftLine.setForegroundColor(ColorConstants.red);
+		leftLine.setLineWidth(2); // Thicker line width
+
+		// Right line with padding
+		final Polyline rightLine = new Polyline();
+		rightLine.addPoint(new Point(bounds.x + bounds.width + padding, bounds.y - padding)); // Apply padding
+		rightLine.addPoint(new Point(bounds.x + bounds.width + padding, bounds.y + bounds.height + padding)); // Apply
+																												// padding
+		rightLine.setForegroundColor(ColorConstants.red);
+		rightLine.setLineWidth(2); // Thicker line width
+
+		// Add the lines to the canvas (drawing layer)
+		final FigureCanvas canvas = (FigureCanvas) viewer.getControl();
+		if (canvas != null) {
+			canvas.getContents().add(topLine);
+			canvas.getContents().add(bottomLine);
+			canvas.getContents().add(leftLine);
+			canvas.getContents().add(rightLine);
 		}
 	}
 
