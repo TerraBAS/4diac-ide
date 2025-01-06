@@ -96,4 +96,8 @@ public class UpdateInstancesChange extends Change {
 		return project;
 	}
 
+	public FBNetworkElement getFBNetworkElement() {
+		return instance;
+	}
+
 }
