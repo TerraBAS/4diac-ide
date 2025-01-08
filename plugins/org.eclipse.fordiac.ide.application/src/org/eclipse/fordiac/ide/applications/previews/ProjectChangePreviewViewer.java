@@ -52,7 +52,6 @@ public class ProjectChangePreviewViewer implements IChangePreviewViewer {
 	public void createControl(final Composite parent) {
 		System.out.println("Creating Project Change preview control");
 
-		// Ensure parent layout is set correctly
 		parent.setLayout(new GridLayout(1, false));
 
 		this.parent = parent;
@@ -122,37 +121,31 @@ public class ProjectChangePreviewViewer implements IChangePreviewViewer {
 
 	private void resetGraphicalViewer(final AdvancedScrollingGraphicalViewer viewer) {
 		if (viewer != null) {
-			// Clear previous contents, remove listeners, and reinitialize
-			viewer.setContents(null); // Ensure we clear the current contents
+			viewer.setContents(null);
 			if (viewer.getControl() != null) {
-				viewer.getControl().setRedraw(false); // Disable redraw during reset to avoid flicker
-				viewer.getControl().dispose(); // Dispose the old canvas/control if necessary
+				viewer.getControl().setRedraw(false);
+				viewer.getControl().dispose();
 			}
 		}
 	}
 
 	private void drawRedRectangleForElement(final AdvancedScrollingGraphicalViewer viewer, final FBNetworkElement fb) {
 		if (viewer != null && fb != null) {
-			// Get the edit part for the FBNetworkElement
 			final EditPart editPart = viewer.getEditPartRegistry().get(fb);
 
 			if (editPart != null) {
-				// Get the figure for the edit part (this represents the visual element)
 				final IFigure figure = ((AbstractGraphicalEditPart) editPart).getFigure();
 				if (figure != null) {
 					// Ensure layout is complete before accessing bounds
 					viewer.getControl().getDisplay().asyncExec(() -> {
-						// Now, access the bounds after ensuring the figure is laid out
 						final Rectangle bounds = figure.getBounds();
 						System.out.println("Figure bounds (local): " + bounds.x + ", " + bounds.y);
 
-						// Translate to absolute coordinates
 						figure.translateToAbsolute(bounds);
 						System.out.println("Figure bounds (absolute): " + bounds.x + ", " + bounds.y);
 
 						createRedBorder(viewer, bounds);
 
-						// Add the red rectangle to the canvas (drawing layer)
 						final FigureCanvas canvas = (FigureCanvas) viewer.getControl();
 						if (canvas != null) {
 
@@ -161,11 +154,7 @@ public class ProjectChangePreviewViewer implements IChangePreviewViewer {
 						}
 
 					});
-				} else {
-					System.out.println("Figure for edit part is null.");
 				}
-			} else {
-				System.out.println("EditPart for FBNetworkElement is null.");
 			}
 		}
 	}
@@ -173,37 +162,30 @@ public class ProjectChangePreviewViewer implements IChangePreviewViewer {
 	private void createRedBorder(final AdvancedScrollingGraphicalViewer viewer, final Rectangle bounds) {
 		final int padding = 5;
 
-		// Top line with padding
 		final Polyline topLine = new Polyline();
-		topLine.addPoint(new Point(bounds.x - padding, bounds.y - padding)); // Apply padding
-		topLine.addPoint(new Point(bounds.x + bounds.width + padding, bounds.y - padding)); // Apply padding
+		topLine.addPoint(new Point(bounds.x - padding, bounds.y - padding));
+		topLine.addPoint(new Point(bounds.x + bounds.width + padding, bounds.y - padding));
 		topLine.setForegroundColor(ColorConstants.red);
-		topLine.setLineWidth(2); // Thicker line width
+		topLine.setLineWidth(2);
 
-		// Bottom line with padding
 		final Polyline bottomLine = new Polyline();
-		bottomLine.addPoint(new Point(bounds.x - padding, bounds.y + bounds.height + padding)); // Apply padding
-		bottomLine.addPoint(new Point(bounds.x + bounds.width + padding, bounds.y + bounds.height + padding)); // Apply
-																												// padding
+		bottomLine.addPoint(new Point(bounds.x - padding, bounds.y + bounds.height + padding));
+		bottomLine.addPoint(new Point(bounds.x + bounds.width + padding, bounds.y + bounds.height + padding));
 		bottomLine.setForegroundColor(ColorConstants.red);
-		bottomLine.setLineWidth(2); // Thicker line width
+		bottomLine.setLineWidth(2);
 
-		// Left line with padding
 		final Polyline leftLine = new Polyline();
-		leftLine.addPoint(new Point(bounds.x - padding, bounds.y - padding)); // Apply padding
-		leftLine.addPoint(new Point(bounds.x - padding, bounds.y + bounds.height + padding)); // Apply padding
+		leftLine.addPoint(new Point(bounds.x - padding, bounds.y - padding));
+		leftLine.addPoint(new Point(bounds.x - padding, bounds.y + bounds.height + padding));
 		leftLine.setForegroundColor(ColorConstants.red);
-		leftLine.setLineWidth(2); // Thicker line width
+		leftLine.setLineWidth(2);
 
-		// Right line with padding
 		final Polyline rightLine = new Polyline();
-		rightLine.addPoint(new Point(bounds.x + bounds.width + padding, bounds.y - padding)); // Apply padding
-		rightLine.addPoint(new Point(bounds.x + bounds.width + padding, bounds.y + bounds.height + padding)); // Apply
-																												// padding
+		rightLine.addPoint(new Point(bounds.x + bounds.width + padding, bounds.y - padding));
+		rightLine.addPoint(new Point(bounds.x + bounds.width + padding, bounds.y + bounds.height + padding));
 		rightLine.setForegroundColor(ColorConstants.red);
-		rightLine.setLineWidth(2); // Thicker line width
+		rightLine.setLineWidth(2);
 
-		// Add the lines to the canvas (drawing layer)
 		final FigureCanvas canvas = (FigureCanvas) viewer.getControl();
 		if (canvas != null) {
 			canvas.getContents().add(topLine);
