@@ -198,7 +198,6 @@ public class InterfaceDataTypeChangePreviewViewer implements IChangePreviewViewe
 
 				if ((val instanceof final InterfaceEditPart part)
 						&& part.getCastedModel().getFullTypeName().equals(originalTypeName)) {
-					System.out.println("Found matching InterfaceEditPart: " + originalTypeName);
 
 					final IFigure figure = part.getFigure();
 					if (figure != null) {
