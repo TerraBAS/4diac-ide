@@ -50,8 +50,6 @@ public class ProjectChangePreviewViewer implements IChangePreviewViewer {
 
 	@Override
 	public void createControl(final Composite parent) {
-		System.out.println("Creating Project Change preview control");
-
 		parent.setLayout(new GridLayout(1, false));
 
 		this.parent = parent;
@@ -83,8 +81,6 @@ public class ProjectChangePreviewViewer implements IChangePreviewViewer {
 
 	@Override
 	public void setInput(final ChangePreviewViewerInput input) {
-
-		System.out.println("Creating Project Change preview input");
 		if (!(input.getChange() instanceof UpdateInstancesChange)) {
 			return;
 		}
@@ -139,17 +135,13 @@ public class ProjectChangePreviewViewer implements IChangePreviewViewer {
 					// Ensure layout is complete before accessing bounds
 					viewer.getControl().getDisplay().asyncExec(() -> {
 						final Rectangle bounds = figure.getBounds();
-						System.out.println("Figure bounds (local): " + bounds.x + ", " + bounds.y);
 
 						figure.translateToAbsolute(bounds);
-						System.out.println("Figure bounds (absolute): " + bounds.x + ", " + bounds.y);
 
 						createRedBorder(viewer, bounds);
 
 						final FigureCanvas canvas = (FigureCanvas) viewer.getControl();
 						if (canvas != null) {
-
-							System.out.println("Scroll to " + bounds.x + "X and " + bounds.y + "Y");
 							canvas.scrollTo(bounds.x - 10, bounds.y - 10);
 						}
 
